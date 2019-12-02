@@ -1,1 +1,298 @@
+import matplotlib.pyplot as plt # to plot graphs
+import pandas as pd             # to work with tables and storing/manipulating data
+import numpy as np              # just in case
+import datetime as dt           # timing
+import requests                 # connecting to API's
+import json                     # reading json files
+from mpl_finance import candlestick_ohlc  # to draw candlesticks
+import matplotlib.dates as mdates           # to convert dates to matplotlib supported format
+from mpl_finance import candlestick2_ohlc  # to draw candlesticks, 2 way
+import random
+from sklearn.linear_model import LinearRegression
+import statsmodels.tsa.stattools as ts
 
+
+
+def get_stock_data(symbol, interval):
+    root_url = 'https://api.binance.com/api/v1/klines'
+    url = root_url + '?symbol=' + symbol + '&interval=' + interval
+    # print(url)
+    data = json.loads(requests.get(url).text)
+    df = pd.DataFrame(data)
+    df.columns = ['open_time','o','h','l','c','volume','close_time','qav','num_trades', 'taker_base_vol', 'taker_quote_vol', 'ignore']
+    df.index = [dt.datetime.fromtimestamp(x/1000.0) for x in df.close_time]
+    # print(df)
+    return df
+
+
+def get_many_stocks_data():
+    symbols = json.loads(requests.get('https://api.binance.com/api/v1/exchangeInfo').text)
+    symbols_btc = [symbol['symbol'] for symbol in symbols['symbols'] if symbol['quoteAsset'] == 'BTC']
+    print(f'SYMBOLS FOR BTC PAIR: {symbols_btc}')
+
+    symbols_usdt = [symbol['symbol'] for symbol in symbols['symbols'] if symbol['quoteAsset'] == 'USDT']
+    print(f'SYMBOLS FOR USDT PAIR:{symbols_usdt}')
+
+    symbols_eth = [symbol['symbol'] for symbol in symbols['symbols'] if symbol['quoteAsset'] == 'ETH']
+    print(f'SYMBOLS FOR ETH PAIR:{symbols_eth}')
+    price_data = []
+
+    # for symbol in symbols_usdt:
+    #     data = get_stock_data(symbol, '1d')
+    #     price_data.append(data['c'].astype('float'))
+    # print(price_data)
+
+
+def draw_chart(stock, symbol):
+
+    stock['21ma'] = stock['c'].rolling(window=21).mean()
+    # hotusdt = stock['close'].astype('float')
+
+    ax1 = plt.subplot2grid((6, 1), (0, 0), rowspan=5, colspan=1)              # defines 1st axis
+    ax2 = plt.subplot2grid((6, 1), (5, 0), rowspan=1, colspan=1, sharex=ax1)  # defines 2nd axis (under 1st one)
+
+    ax1.plot(stock.index, stock['c'].astype('float'))  #SHOWS MAIN STOCK PRICE ON GRAPH
+    ax1.plot(stock.index, stock['21ma'].astype('float'))   #SHOWS 21MA IN OM GRAPH
+    ax2.bar(stock.index, stock['volume'].astype('float'), width=0.3)  #shows volume on 2nd axis graph
+    plt.title(f'{symbol}\n -----')
+    plt.show()
+
+
+def draw_candle_chart(stock):  # NEED TO MAKE DATES DISPLAY PROPERLY
+    # also try to fix the volume, coz it fucks up the graph
+    stock.index = [mdates.date2num(dt.datetime.fromtimestamp(x/1000)) for x in stock.open_time]
+    # print(stock)
+    ax1 = plt.subplot2grid((6, 1), (0, 0), rowspan=5, colspan=1)  # defines 1st axis
+    ax2 = plt.subplot2grid((6, 1), (5, 0), rowspan=1, colspan=1, sharex=ax1)  # defines 2nd axis (under 1st one)
+    candlestick_ohlc(ax1, stock.values.astype('float'), width=2, colorup='g')
+    # candlestick2_ohlc(ax1, stock['o'].astype('float'), stock['h'].astype('float'), stock['l'].astype('float'), stock['c'].astype('float'), width=0.7, colorup='g')
+    # candlestick2_ohlc()
+    # ax2.bar(stock.index, stock['volume'].astype('float'), width=0.3)  #shows volume on 2nd axis graph
+    plt.show()
+
+
+def draw_widget_4_charts(symbol1, symbol2, symbol3, symbol4, interval):
+    stock1 = get_stock_data(symbol1, interval)
+    stock1['21ma'] = stock1['c'].rolling(window=21).mean()
+    stock2 = get_stock_data(symbol2, interval)
+    stock2['21ma'] = stock2['c'].rolling(window=21).mean()
+    stock3 = get_stock_data(symbol3, interval)
+    stock3['21ma'] = stock3['c'].rolling(window=21).mean()
+    stock4 = get_stock_data(symbol4, interval)
+    stock4['21ma'] = stock4['c'].rolling(window=21).mean()
+
+    plt.figure(figsize=(15, 7))
+
+    ax1 = plt.subplot2grid((8, 1), (0, 0), rowspan=2, colspan=1)  # defines 1st axis
+    ax2 = plt.subplot2grid((8, 1), (2, 0), rowspan=2, colspan=1, sharex=ax1)  # defines 2nd axis (under 1st one)
+    ax3 = plt.subplot2grid((8, 1), (4, 0), rowspan=2, colspan=1, sharex=ax1)  # defines 3rd axis (under 1st one)
+    ax4 = plt.subplot2grid((8, 1), (6, 0), rowspan=2, colspan=1, sharex=ax1)  # defines 4th axis (under 1st one)
+
+    ax1.plot(stock1.index, stock1['c'].astype('float'), label=symbol1)
+    ax1.plot(stock1.index, stock1['21ma'].astype('float'))   #SHOWS 21MA ON 1ST GRAPH
+
+    ax2.plot(stock2.index, stock2['c'].astype('float'), label=symbol2)
+    ax2.plot(stock2.index, stock2['21ma'].astype('float'))   #SHOWS 21MA ON 2ND GRAPH
+
+    ax3.plot(stock3.index, stock3['c'].astype('float'), label=symbol3)
+    ax3.plot(stock3.index, stock3['21ma'].astype('float'))   #SHOWS 21MA ON 3RD GRAPH
+
+    ax4.plot(stock4.index, stock4['c'].astype('float'), label=symbol4)
+    ax4.plot(stock4.index, stock4['21ma'].astype('float'))   #SHOWS 21MA ON 4TH GRAPH
+
+    plt.legend()
+    plt.show()
+
+
+def compile_data():
+    price_data = []
+    # available_pairs = ['HOTBTC', 'HBARBTC', 'LINKBTC', 'RENBTC', 'ETHBTC', 'NEOBTC', 'XRPBTC', 'TRXBTC', 'CHZBTC', 'VETBTC', 'ONTBTC', 'QTUMBTC', 'ATOMBTC', 'XLMBTC', 'FETBTC', 'BATBTC', 'ETCBTC', 'XMRBTC', 'MATICBTC', 'ADABTC', 'BEAMBTC', 'KAVABTC', 'ICXBTC', 'ARPABTC', 'XTZBTC', 'NKNBTC', 'COCOSBTC', 'ERDBTC', 'EOSBTC', 'NULSBTC', 'IOTABTC', 'DOGEBTC', 'ONEBTC', 'TOMOBTC', 'OMGBTC', 'HCBTC', 'LTCBTC', 'MTLBTC', 'STXBTC', 'ZILBTC', 'WAVESBTC', 'BANDBTC', 'DUSKBTC', 'ALGOBTC', 'STORMBTC', 'FUNBTC', 'PERLBTC', 'CELRBTC', 'THETABTC', 'KEYBTC', 'FTMBTC', 'ENJBTC', 'GTOBTC']
+    # available_pairs = ['BANDBTC', 'ONEBTC', 'PERLBTC', 'KAVABTC', 'CELRBTC']
+    # ALL MARGIN TRADING ON BINANCE ---  available_pairs = ['MATICBTC', 'ETHBTC', 'BNBBTC', 'LINKBTC', 'XRPBTC', 'ADABTC', 'XMRBTC', 'LTCBTC', 'EOSBTC', 'XTZBTC', 'VETBTC', 'DASHBTC', 'ATOMBTC', 'TRXBTC', 'QTUMBTC', 'BCHBTC', 'NEOBTC', 'BATBTC', 'IOSTBTC', 'ZECBTC', 'ONTBTC', 'XLMBTC', 'ETCBTC', 'IOTABTC']
+    available_pairs = ['ETHBTC', 'BNBBTC', 'LINKBTC', 'XRPBTC', 'ADABTC', 'XMRBTC', 'LTCBTC', 'EOSBTC', 'XTZBTC', 'VETBTC', 'DASHBTC', 'ATOMBTC', 'TRXBTC', 'QTUMBTC', 'BCHBTC', 'NEOBTC', 'BATBTC', 'IOSTBTC', 'ZECBTC', 'ONTBTC', 'XLMBTC', 'ETCBTC', 'IOTABTC']
+    # available_pairs = random.choices(pairs, k=3)  # chooses random 3 pairs (for analysis)
+    for pair in available_pairs:
+        data = get_stock_data(pair, '1h')
+        print(pair)
+        price_data.append(data['c'].astype('float'))
+    print(price_data)
+    combination_graph = pd.concat(price_data, axis=1)
+    combination_graph.columns = available_pairs
+    combination_graph.div(combination_graph.iloc[0]).plot(figsize=(16, 9))
+    plt.show()
+
+
+def clean_data(data):
+    price_data = np.array(data['c'].astype('float'))
+    return price_data
+
+
+def find_linear_regression(first_pair_data, second_pair_data):
+    reg = LinearRegression(fit_intercept=True)
+    reg.fit(first_pair_data.reshape(-1, 1), second_pair_data.reshape(-1, 1))
+    regression_coefficient, regression_interception = reg.coef_[0,0], reg.intercept_[0]
+    print(f' b1: {regression_coefficient}, b0: {regression_interception}')
+    return regression_coefficient, regression_interception
+
+
+def residuals(first_pair_values, second_pair_values, regression_coefficient, regression_interception):
+    return first_pair_values - (regression_coefficient * second_pair_values + regression_interception)
+
+
+# measures mean value of the data (среднее значение)
+def find_mean(data):
+    sum = 0
+    for item in data:
+        sum += item
+    mean = sum / len(data)
+    print(f'sum: {round(sum, 10)}, len:{len(data)}, mean: {round(mean, 10)}')
+    return mean
+
+
+# measures standart deviation (стандартное отклонение)
+def find_stdev(data):
+    standart_deviation = np.std(data)
+    print_st_dev = format(standart_deviation, '.12f')
+    print(f'st.dev: {print_st_dev}')
+    return standart_deviation
+
+
+def observations_within_stdev(data):
+    mean = np.mean(data)
+    st_dev = np.std(data)
+    lower_threshold = mean - st_dev
+    upper_threshold = mean + st_dev
+    valid_data = []
+    for item in data:
+        if upper_threshold > item > lower_threshold:
+            valid_data.append(item)
+
+    percentage_within_1std = format((len(valid_data)/len(data) * 100), '.2f')
+    print(f'-1 st.dev < N < 1 st.dev: {len(valid_data)} out of {len(data)} , {percentage_within_1std} %')
+
+
+def residuals_mean(data):
+    mean = np.mean(data)
+    residual_from_mean_data = [mean - item for item in data]
+    return residual_from_mean_data  # SST RELATED STUFF
+
+
+def find_regression(symbol1, symbol2, first_pair_data, second_pair_data):
+
+    mean_first_pair = np.mean(first_pair_data)
+
+    mean_second_pair = np.mean(second_pair_data)
+
+    print(f'mean x : {mean_first_pair}, mean y :{mean_second_pair}')
+    # print(mean_check1, mean_check2)
+    sum_up = 0
+    sum_down = 0
+    new_x_data = []
+    new_y_data = []
+    for x in first_pair_data:
+        x_value = x - mean_first_pair
+        new_x_data.append(x_value)
+
+    for y in second_pair_data:
+        y_value = y - mean_second_pair
+        new_y_data.append(y_value)
+
+    multiplied = [x*y for x, y in zip(new_x_data, new_y_data)]
+
+    for item in multiplied:
+        sum_up += item
+
+    for x in first_pair_data:
+        x_value = (x - mean_first_pair)**2
+        sum_down += x_value
+
+    b1 = sum_up / sum_down
+    b0 = mean_second_pair - b1*mean_first_pair
+    print(f' b1: {b1}, b0: {b0}')
+    return b1, b0
+
+
+def sst_sse_ssr(data, data2):
+    sse = 0
+    squared_data = [item**2 for item in data]
+    for item in squared_data:
+        sse += item
+
+    residuals_mean(data2)  # need to re-check
+    sst = 0
+    squared_data = [item**2 for item in data2]
+    for item in squared_data:
+        sst += item
+
+    ssr = sst - sse
+
+    r_squared = ssr/sst
+    # ADD SST, SSR
+
+
+def draw_scatter_correlation(first_pair, second_pair, timeframe):
+    first_pair_data = get_stock_data(first_pair, timeframe)
+    second_pair_data = get_stock_data(second_pair, timeframe)
+    first_pair_data_clean = clean_data(first_pair_data)
+    second_pair_data_clean = clean_data(second_pair_data)
+    # draw_chart(first_pair_data, first_pair)
+    # draw_chart(second_pair_data, second_pair)
+    plt.scatter(first_pair_data_clean, second_pair_data_clean, color='b', marker='o', s=10)
+    print(first_pair_data_clean)
+    print(second_pair_data_clean)
+    plt.show()
+
+
+def full_analysis(symbol1, symbol2, timeframe):
+
+    print('[' + symbol1 + ']')
+    first_pair_data = get_stock_data(symbol1, timeframe)
+    first_pair_clean = clean_data(first_pair_data)
+
+    mean_first_pair = find_mean(first_pair_clean)
+    st_dev_first = find_stdev(first_pair_clean)
+    observations_within_stdev(first_pair_clean)
+
+    print('[' + symbol2 + ']')
+    second_pair_data = get_stock_data(symbol2, timeframe)
+    second_pair_clean = clean_data(second_pair_data)
+
+    mean_second_pair = find_mean(second_pair_clean)
+    st_dev_second = find_stdev(second_pair_clean)
+    observations_within_stdev(second_pair_clean)
+
+    # print(f'mean x : {mean_first_pair}, mean y :{mean_second_pair}') <<------ have it in find_regression, may change
+    print('[regression analyis]')
+
+    b1, b0 = find_regression(symbol1, symbol2, first_pair_clean, second_pair_clean)
+    find_linear_regression(first_pair_clean, second_pair_clean)
+
+    print('[looking for residuals]')
+    residuals_data = residuals(first_pair_clean, second_pair_clean, b1, b0)
+
+
+    # create a visual part of the analysis: chart of 1st pair, chart of 2nd pair, scatter plot of both. + think of more
+
+
+full_analysis('BNBBTC', 'EOSBTC', '4h')
+
+
+# bnbbtc = get_stock_data('BNBBTC', '4h')
+# eosbtc = get_stock_data('EOSBTC', '4h')
+# # draw_chart(bnbbtc, 'BNBBTC')
+# bnbbtc_clean = clean_data(bnbbtc)
+# eosbtc_clean = clean_data(eosbtc)
+
+# b1, b0 = find_regression('BNBBTC', 'EOSBTC', bnbbtc_clean, eosbtc_clean)
+# find_linear_regression(bnbbtc_clean, eosbtc_clean)
+# residuals_data = residuals(bnbbtc_clean, eosbtc_clean, b1, b0)
+# print(residuals_data)
+
+draw_scatter_correlation('BNBBTC', 'EOSBTC', '4h')
+
+# NEED TO DO IT OTHER WAY ROUND AS WELL !!!!! TO SEE THE DEPENDENT/INDEPENDENT VARIABLE REVERSE
+# try to use the functions on some basic data in lectures - to check its validity. !!!
+# draw_widget_4_charts('HOTUSDT', 'HOTETH', 'HOTBTC', 'BTCUSDT', '1d')
+
+
+# maybe write a function for standartized values? Do we really need that shit all the time? mean and variance aren't constant
