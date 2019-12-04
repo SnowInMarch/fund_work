@@ -1,0 +1,249 @@
+from binance.client import Client as Client_binance
+from kucoin.client import Client as Client_kucoin
+from binance.exceptions import BinanceAPIException
+import time
+import pandas as pd
+import numpy as np
+import csv
+import datetime
+import requests
+import json
+from playsound import playsound
+
+api_key_binance = 'dmuyEnfcP9Kn0ZqyjA3ZyS7C1POomhbSwvn9aEsIlw7xRCRQTGR4arurhqx8xjd2'
+api_secret_binance = 'Klfbussl3KLaWiF0B6OMr6W79lF7vpXBYq390626wsENYMWEywsgrzVNunUS5pXa'
+client_binance = Client_binance(api_key_binance, api_secret_binance)
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+api_key_kucoin = '5dc906dd76ff5f62b5f5412f'
+api_secret_kucoin = 'f9cfadd0-53f0-4dd8-b39c-f1ba94691089'
+api_passphrase_kucoin = 'IvanIvan'
+client_kucoin = Client_kucoin(api_key_kucoin, api_secret_kucoin, api_passphrase_kucoin)
+
+# tickers = client.get_all_tickers()
+# print(tickers)
+
+
+def write_log(message):
+    with open('dual_arbitrage_log.csv', 'a') as file:
+        wfile = csv.writer(file)
+        wfile.writerow(message)
+
+
+def recommended_trading_amount(symbol):
+    if symbol == 'ALGO':
+        reccommended_amount = 30.5
+    if symbol == 'ENJ':
+        reccommended_amount = 120.1
+    if symbol == 'FTM':
+        reccommended_amount = 300.1
+    if symbol == 'ETH':
+        reccommended_amount = 0.001
+    if symbol == 'BTC':
+        reccommended_amount = 0.0004
+    return reccommended_amount
+
+
+def get_balance_kucoin(symbol):
+    if symbol == 'ALGO':
+        algo_account_info_kucoin = client_kucoin.get_account('5dc9315d3c48d512233034e9')
+        balance_kucoin = float(algo_account_info_kucoin.get('balance'))
+    if symbol == 'ENJ':
+        enj_account_info_kucoin = client_kucoin.get_account('5dca2b833c48d51223342228')
+        balance_kucoin = float(enj_account_info_kucoin.get('balance'))
+    if symbol == 'FTM':
+        ftm_account_info_kucoin = client_kucoin.get_account('5dca2b771314e112d7bcf9cf')
+        balance_kucoin = float(ftm_account_info_kucoin.get('balance'))
+    if symbol == 'BTC':
+        btc_account_info_kucoin = client_kucoin.get_account('5dca4657b84bcf1355d83b44')  # PUT ACCOUNT ID HERE
+        balance_kucoin = float(btc_account_info_kucoin.get('balance'))
+    if symbol == 'ETH':
+        eth_account_info_kucoin = client_kucoin.get_account('5dca4666e5b6921317ca12d0')  # PUT ACCOUNT ID HERE
+        balance_kucoin = float(eth_account_info_kucoin.get('balance'))
+    return balance_kucoin
+
+
+def get_balance_binance(symbol):
+    account_info_binance = client_binance.get_asset_balance(asset=symbol)
+    balance_binance = float(account_info_binance.get('free'))
+    return balance_binance
+
+
+def get_required_balances(symbol, symbol2):
+    balance_binance = get_balance_binance(symbol)
+    balance_kucoin = get_balance_kucoin(symbol)
+    balance2_binance = get_balance_binance(symbol2)
+    balance2_kucoin = get_balance_kucoin(symbol2)
+    return balance_binance, balance_kucoin, balance2_binance, balance2_kucoin
+
+
+def check_orderbooks(symbol, symbol2):
+    binance_orderbook = client_binance.get_order_book(symbol=symbol + symbol2, limit=5)
+    kucoin_orderbook = client_kucoin.get_order_book(symbol + '-' + symbol2)
+    print('* * * ' + symbol + symbol2 + ' * * *')
+    bids_binance = binance_orderbook.get('bids')
+    asks_binance = binance_orderbook.get('asks')
+    bids_kucoin = kucoin_orderbook.get('bids')
+    asks_kucoin = kucoin_orderbook.get('asks')
+    return bids_binance, asks_binance, bids_kucoin, asks_kucoin
+
+
+def get_first_prices(bids_binance, asks_binance, bids_kucoin, asks_kucoin):
+    first_bid_binance = float(bids_binance[0][0])
+    first_ask_binance = float(asks_binance[0][0])
+    first_bid_kucoin = float(bids_kucoin[0][0])
+    first_ask_kucoin = float(asks_kucoin[0][0])
+
+    return first_bid_binance, first_ask_binance, first_bid_kucoin, first_ask_kucoin
+
+
+def get_fees(first_bid_binance, first_ask_binance, first_bid_kucoin, first_ask_kucoin):
+    fee_per_price_bid_binance = first_bid_binance * 0.00105
+    fee_per_price_ask_binance = first_ask_binance * 0.00105
+    fee_per_price_bid_kucoin = first_bid_kucoin * 0.00105
+    fee_per_price_ask_kucoin = first_ask_kucoin * 0.00105
+    return fee_per_price_bid_binance, fee_per_price_ask_binance, fee_per_price_bid_kucoin, fee_per_price_ask_kucoin
+
+
+def buy_kucoin_sell_binance(symbol, symbol2, amount, buy_price_kucoin, sell_price_binance, time_stamp):
+    playsound('Ticket-machine-sound-effect.mp3')
+    print(f' buy at kucoin, sell at binance  {amount} of {symbol} using {symbol2}')
+    client_binance.order_limit_sell(symbol=symbol + symbol2, quantity=amount, price=sell_price_binance)
+    client_kucoin.create_limit_order(price=buy_price_kucoin, size=amount, side='buy', symbol=symbol + '-' + symbol2)
+    message_list = [time_stamp, symbol, symbol2, amount, buy_price_kucoin, sell_price_binance, 'NaN', 'NaN']
+    write_log(message_list)
+
+
+def buy_binance_sell_kucoin(symbol, symbol2, amount, sell_price_kucoin, buy_price_binance, time_stamp):
+    playsound('Ticket-machine-sound-effect.mp3')
+    print(f' buy at binance, sell at kucoin  {amount} of {symbol} using {symbol2}')
+    client_binance.order_limit_buy(symbol=symbol + symbol2, quantity=amount, price=buy_price_binance)
+    client_kucoin.create_limit_order(price=sell_price_kucoin, size=amount, side='sell', symbol=symbol + '-' + symbol2)
+    message_list = [time_stamp, symbol, symbol2, amount, 'NaN', 'NaN', sell_price_kucoin, buy_price_binance]
+    write_log(message_list)
+
+
+def find_opportunity(symbol, symbol2):
+
+    balance_binance, balance_kucoin, balance2_binance, balance2_kucoin = get_required_balances(symbol, symbol2)
+    bids_binance, asks_binance, bids_kucoin, asks_kucoin = check_orderbooks(symbol, symbol2)
+    first_bid_binance, first_ask_binance, first_bid_kucoin, first_ask_kucoin = \
+        get_first_prices(bids_binance, asks_binance, bids_kucoin, asks_kucoin)
+    fee_per_price_bid_binance, fee_per_price_ask_binance, fee_per_price_bid_kucoin, fee_per_price_ask_kucoin = \
+        get_fees(first_bid_binance, first_ask_binance, first_bid_kucoin, first_ask_kucoin)
+
+    print('BINANCE BIDS  ' + bids_binance[0][0] + ', amount available: ' + bids_binance[0][1] + ' est fee: ' + format(
+        fee_per_price_bid_binance, '.12f'))
+    print('BINANCE ASKS  ' + asks_binance[0][0] + ', amount available: ' + asks_binance[0][1] + ' est fee: ' + format(
+        fee_per_price_ask_binance, '.12f'))
+    print('KUCOIN BIDS  ' + bids_kucoin[0][0] + ', amount available: ' + bids_kucoin[0][1] + ' est fee: ' + format(
+        fee_per_price_bid_kucoin, '.12f'))
+    print('KUCOIN ASKS  ' + asks_kucoin[0][0] + ', amount available: ' + asks_kucoin[0][1] + ' est fee: ' + format(
+        fee_per_price_ask_kucoin, '.12f'))
+
+    if first_bid_binance - fee_per_price_bid_binance > first_ask_kucoin + fee_per_price_ask_kucoin:
+        print('something found. checking availability, need to sell on binance and buy on kucoin')
+        req_amount = recommended_trading_amount(symbol)
+        req_amount2 = recommended_trading_amount(symbol2)
+        time_stamp = datetime.datetime.now()
+        if balance_binance < req_amount or balance2_kucoin < req_amount2:
+            # print(f'not enough {symbol} on Binance. or not enough {symbol2} on Kucoin. Consider moving assets from other exchange')
+            if balance_binance < req_amount:
+                print(f'not enough {symbol} on binance')
+            if balance2_kucoin < req_amount2:
+                print(f'not enough {symbol2} on kucoin')
+            message_list_no_funds = [time_stamp, symbol, symbol2, 'order not executed', 'buy_kucoin', 'sell_binance',
+                                     'NaN', 'NaN']
+            write_log(message_list_no_funds)
+        else:
+            calc_profit = format((first_bid_binance - fee_per_price_bid_binance) - (first_ask_kucoin + fee_per_price_ask_kucoin), '.8f')
+            print('potential profit : ' + str(calc_profit))
+            amount_binance = float(bids_binance[0][1])
+            amount_kucoin = float(asks_kucoin[0][1])
+
+            sell_price_binance = format(first_bid_binance, '.8f')
+            buy_price_kucoin = format(first_ask_kucoin, '.8f')
+
+            if amount_binance < amount_kucoin:
+                available_amount = amount_binance
+            else:
+                available_amount = amount_kucoin
+
+            if balance_binance <= available_amount and balance_binance <= balance2_kucoin*float(buy_price_kucoin):
+                amount = int(balance_binance / 2)
+
+            elif balance2_kucoin <= available_amount*float(buy_price_kucoin):  # HERE , BTC AMOUNTS HAVE TO CHECK UP ????????
+                amount = int(balance_kucoin / 2)
+
+            else:
+                amount = int(available_amount / 2)
+            buy_kucoin_sell_binance(symbol, symbol2, amount, buy_price_kucoin, sell_price_binance, time_stamp)
+
+    elif first_bid_kucoin - fee_per_price_bid_kucoin > first_ask_binance + fee_per_price_ask_binance:
+        print('something found. checking availability, need to sell on kucoin and buy on binance')
+        req_amount = recommended_trading_amount(symbol)
+        req_amount2 = recommended_trading_amount(symbol2)
+        time_stamp = datetime.datetime.now()
+
+        if balance_kucoin < req_amount or balance2_binance < req_amount2:
+            # print(f'not enough {symbol} on Kucoin. (or not enough {symbol2} on binance) Consider moving assets from other exchange')
+            if balance_kucoin < req_amount:
+                print(f'not enough {symbol} on kucoin')
+            if balance2_binance < req_amount2:
+                print(f'not enough {symbol2} on binance')
+            message_list_no_funds = [time_stamp, symbol, symbol2, 'order not executed', 'buy_kucoin', 'sell_binance',
+                                     'NaN', 'NaN']
+            write_log(message_list_no_funds)
+        else:
+            calc_profit = (first_bid_kucoin - fee_per_price_bid_kucoin) - (first_ask_binance + fee_per_price_ask_binance)
+            print('potential profit : ' + format(calc_profit, '.8f'))
+            amount_kucoin = float(bids_kucoin[0][1])
+            amount_binance = float(asks_binance[0][1])
+
+            if amount_kucoin < amount_binance:
+                available_amount = amount_kucoin
+            else:
+                available_amount = amount_binance
+
+            buy_price_binance = format(first_ask_binance, '.8f')  # DO I REALLY NEED THIS LINE?
+            sell_price_kucoin = format(first_bid_kucoin, '.8f')  # DO I REALLY NEED THIS LINE?
+
+            if balance_kucoin <= available_amount and balance_kucoin <= balance2_binance*float(buy_price_binance):
+                amount = int(balance_kucoin / 2)
+
+            elif balance2_binance <= available_amount*float(buy_price_binance): # HERE , BTC AMOUNTS HAVE TO CHECK UP
+                amount = int(balance_binance / 2)
+
+            else:
+                amount = int(available_amount / 2)
+            buy_binance_sell_kucoin(symbol, symbol2, amount, sell_price_kucoin, buy_price_binance, time_stamp)
+
+    else:
+        message = 'notning found'
+        print(message)
+
+
+x = 0
+log = []
+for x in range(3000):
+    try:
+        symbols = ['FTM', 'ALGO', 'ENJ']
+        for symbol in symbols:
+            find_opportunity(symbol, 'BTC')
+
+        find_opportunity('ENJ', 'ETH')
+
+        time.sleep(4)
+        x += 1
+    except BinanceAPIException as e:   # think about different exceptions handling
+        print(e.status_code, e.message)
+        message = ['API related Error', e.status_code, e.message]
+        write_log(message)
+        pass
+
+
+print('execution finished')
+
+
+
