@@ -1,6 +1,7 @@
 from binance.client import Client as Client_binance
 from kucoin.client import Client as Client_kucoin
 from binance.exceptions import BinanceAPIException
+from kucoin.exceptions import KucoinAPIException
 import time
 import pandas as pd
 import numpy as np
@@ -61,6 +62,7 @@ def get_balance_kucoin(symbol):
     if symbol == 'ETH':
         eth_account_info_kucoin = client_kucoin.get_account('5dca4666e5b6921317ca12d0')  # PUT ACCOUNT ID HERE
         balance_kucoin = float(eth_account_info_kucoin.get('balance'))
+
     return balance_kucoin
 
 
@@ -109,8 +111,8 @@ def get_fees(first_bid_binance, first_ask_binance, first_bid_kucoin, first_ask_k
 def buy_kucoin_sell_binance(symbol, symbol2, amount, buy_price_kucoin, sell_price_binance, time_stamp):
     playsound('Ticket-machine-sound-effect.mp3')
     print(f' buy at kucoin, sell at binance  {amount} of {symbol} using {symbol2}')
-    client_binance.order_limit_sell(symbol=symbol + symbol2, quantity=amount, price=sell_price_binance)
     client_kucoin.create_limit_order(price=buy_price_kucoin, size=amount, side='buy', symbol=symbol + '-' + symbol2)
+    client_binance.order_limit_sell(symbol=symbol + symbol2, quantity=amount, price=sell_price_binance)
     message_list = [time_stamp, symbol, symbol2, amount, buy_price_kucoin, sell_price_binance, 'NaN', 'NaN']
     write_log(message_list)
 
@@ -118,11 +120,14 @@ def buy_kucoin_sell_binance(symbol, symbol2, amount, buy_price_kucoin, sell_pric
 def buy_binance_sell_kucoin(symbol, symbol2, amount, sell_price_kucoin, buy_price_binance, time_stamp):
     playsound('Ticket-machine-sound-effect.mp3')
     print(f' buy at binance, sell at kucoin  {amount} of {symbol} using {symbol2}')
-    client_binance.order_limit_buy(symbol=symbol + symbol2, quantity=amount, price=buy_price_binance)
     client_kucoin.create_limit_order(price=sell_price_kucoin, size=amount, side='sell', symbol=symbol + '-' + symbol2)
+    client_binance.order_limit_buy(symbol=symbol + symbol2, quantity=amount, price=buy_price_binance)
     message_list = [time_stamp, symbol, symbol2, amount, 'NaN', 'NaN', sell_price_kucoin, buy_price_binance]
     write_log(message_list)
 
+def round_down(value, decimals): # untested, be careful
+    factor = 1 / (10 ** decimals)
+    return (value // factor) * factor
 
 def find_opportunity(symbol, symbol2):
 
@@ -148,7 +153,6 @@ def find_opportunity(symbol, symbol2):
         req_amount2 = recommended_trading_amount(symbol2)
         time_stamp = datetime.datetime.now()
         if balance_binance < req_amount or balance2_kucoin < req_amount2:
-            # print(f'not enough {symbol} on Binance. or not enough {symbol2} on Kucoin. Consider moving assets from other exchange')
             if balance_binance < req_amount:
                 print(f'not enough {symbol} on binance')
             if balance2_kucoin < req_amount2:
@@ -170,15 +174,21 @@ def find_opportunity(symbol, symbol2):
             else:
                 available_amount = amount_kucoin
 
-            if balance_binance <= available_amount and balance_binance <= balance2_kucoin*float(buy_price_kucoin):
-                amount = int(balance_binance / 2)
+            if balance_binance <= available_amount and balance_binance <= balance2_kucoin/float(buy_price_kucoin):
+                amount = int(balance_binance)
 
-            elif balance2_kucoin <= available_amount*float(buy_price_kucoin):  # HERE , BTC AMOUNTS HAVE TO CHECK UP ????????
-                amount = int(balance_kucoin / 2)
+            elif balance2_kucoin <= available_amount*float(buy_price_kucoin):  # HERE , BTC AMOUNTS HAVE TO CHECK UP
+                amount = int(balance2_kucoin / float(buy_price_kucoin))
 
             else:
-                amount = int(available_amount / 2)
-            buy_kucoin_sell_binance(symbol, symbol2, amount, buy_price_kucoin, sell_price_binance, time_stamp)
+                amount = int(available_amount)
+
+            if float(amount) * float(sell_price_binance) > 0.0001000:
+                buy_kucoin_sell_binance(symbol, symbol2, amount, buy_price_kucoin, sell_price_binance, time_stamp)
+            else:
+                message_small_order_size = ['order size is too small']
+                print(message_small_order_size)
+                write_log(message_small_order_size)
 
     elif first_bid_kucoin - fee_per_price_bid_kucoin > first_ask_binance + fee_per_price_ask_binance:
         print('something found. checking availability, need to sell on kucoin and buy on binance')
@@ -187,7 +197,6 @@ def find_opportunity(symbol, symbol2):
         time_stamp = datetime.datetime.now()
 
         if balance_kucoin < req_amount or balance2_binance < req_amount2:
-            # print(f'not enough {symbol} on Kucoin. (or not enough {symbol2} on binance) Consider moving assets from other exchange')
             if balance_kucoin < req_amount:
                 print(f'not enough {symbol} on kucoin')
             if balance2_binance < req_amount2:
@@ -209,16 +218,20 @@ def find_opportunity(symbol, symbol2):
             buy_price_binance = format(first_ask_binance, '.8f')  # DO I REALLY NEED THIS LINE?
             sell_price_kucoin = format(first_bid_kucoin, '.8f')  # DO I REALLY NEED THIS LINE?
 
-            if balance_kucoin <= available_amount and balance_kucoin <= balance2_binance*float(buy_price_binance):
-                amount = int(balance_kucoin / 2)
+            if balance_kucoin <= available_amount and balance_kucoin <= balance2_binance/float(buy_price_binance):
+                amount = int(balance_kucoin)
 
             elif balance2_binance <= available_amount*float(buy_price_binance): # HERE , BTC AMOUNTS HAVE TO CHECK UP
-                amount = int(balance_binance / 2)
+                amount = int(balance2_binance / float(buy_price_binance))
 
             else:
-                amount = int(available_amount / 2)
-            buy_binance_sell_kucoin(symbol, symbol2, amount, sell_price_kucoin, buy_price_binance, time_stamp)
-
+                amount = int(available_amount)
+            if float(amount) * float(buy_price_binance) > 0.0001000:
+                buy_binance_sell_kucoin(symbol, symbol2, amount, sell_price_kucoin, buy_price_binance, time_stamp)
+            else:
+                message_small_order_size = 'order size is too small'
+                print(message_small_order_size)
+                write_log(message_small_order_size)
     else:
         message = 'notning found'
         print(message)
@@ -228,7 +241,7 @@ x = 0
 log = []
 for x in range(3000):
     try:
-        symbols = ['FTM', 'ALGO', 'ENJ']
+        symbols = ['FTM', 'ALGO', 'ENJ', 'ETH']
         for symbol in symbols:
             find_opportunity(symbol, 'BTC')
 
@@ -236,7 +249,7 @@ for x in range(3000):
 
         time.sleep(4)
         x += 1
-    except BinanceAPIException as e:   # think about different exceptions handling
+    except (BinanceAPIException, KucoinAPIException) as e:   # think about different exceptions handling
         print(e.status_code, e.message)
         message = ['API related Error', e.status_code, e.message]
         write_log(message)
@@ -244,6 +257,3 @@ for x in range(3000):
 
 
 print('execution finished')
-
-
-
