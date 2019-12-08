@@ -186,7 +186,7 @@ def find_opportunity(symbol, symbol2):
             if float(amount) * float(sell_price_binance) > 0.0001000:
                 buy_kucoin_sell_binance(symbol, symbol2, amount, buy_price_kucoin, sell_price_binance, time_stamp)
             else:
-                message_small_order_size = ['order size is too small']
+                message_small_order_size = ['order size is too small', 'sell_binance', 'buy_kucoin']
                 print(message_small_order_size)
                 write_log(message_small_order_size)
 
@@ -229,7 +229,7 @@ def find_opportunity(symbol, symbol2):
             if float(amount) * float(buy_price_binance) > 0.0001000:
                 buy_binance_sell_kucoin(symbol, symbol2, amount, sell_price_kucoin, buy_price_binance, time_stamp)
             else:
-                message_small_order_size = 'order size is too small'
+                message_small_order_size = ['order size is too small', 'buy_kucoin', 'sell_binance']
                 print(message_small_order_size)
                 write_log(message_small_order_size)
     else:
@@ -244,8 +244,6 @@ for x in range(3000):
         symbols = ['FTM', 'ALGO', 'ENJ', 'ETH']
         for symbol in symbols:
             find_opportunity(symbol, 'BTC')
-
-        find_opportunity('ENJ', 'ETH')
 
         time.sleep(4)
         x += 1
