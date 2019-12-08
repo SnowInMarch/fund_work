@@ -1,0 +1,134 @@
+import ccxt
+import time
+from binance.client import Client as Client_binance
+import pandas as pd
+import numpy as np
+import csv
+import datetime
+import requests
+import json
+from playsound import playsound
+
+
+# binance = ccxt.binance({
+#     'apiKey': 'dmuyEnfcP9Kn0ZqyjA3ZyS7C1POomhbSwvn9aEsIlw7xRCRQTGR4arurhqx8xjd2',
+#     'secret': 'Klfbussl3KLaWiF0B6OMr6W79lF7vpXBYq390626wsENYMWEywsgrzVNunUS5pXa',
+#     'timeout': 30000,
+#     'enableRateLimit': True,
+# })
+
+
+api_key_binance = 'dmuyEnfcP9Kn0ZqyjA3ZyS7C1POomhbSwvn9aEsIlw7xRCRQTGR4arurhqx8xjd2'
+api_secret_binance = 'Klfbussl3KLaWiF0B6OMr6W79lF7vpXBYq390626wsENYMWEywsgrzVNunUS5pXa'
+client_binance = Client_binance(api_key_binance, api_secret_binance)
+
+
+okex3 = ccxt.okex3({
+    'apiKey': '32765833-5e94-4512-a069-739659097b46',
+    'secret': '8E05DE5CC76346BE50B0DB2FE4AB2E4E',
+    'password': 'IvanIvan'
+})
+
+
+
+# def get_balance_binance(symbol):
+#     binance_info = (binance.fetch_balance())
+#     binance_balances_info = binance_info.get('info')
+#     binance_balances = binance_balances_info.get('balances')
+#     # print(binance_balances)
+#     symbol_balance = [item.get('free') for item in binance_balances if item.get('asset') == symbol]
+#     print(symbol_balance[0])
+
+
+def get_balance_binance(symbol):
+    account_info_binance = client_binance.get_asset_balance(asset=symbol)
+    balance_binance = float(account_info_binance.get('free'))
+    return balance_binance
+
+
+def get_balance_okex(symbol):
+    okex_info = okex3.fetch_balance()
+    okex_balances_info = okex_info.get('info')
+    symbol_balance = [item.get('available') for item in okex_balances_info if item.get('currency') == symbol]
+    # print(okex_balances_info)
+    okex_balance = symbol_balance[0]
+    return okex_balance
+
+
+def write_log(message):
+    with open('dual_arbitrage_log.csv', 'a') as file:
+        wfile = csv.writer(file)
+        wfile.writerow(message)
+
+
+def recommended_trading_amount(symbol):
+    if symbol == 'BTC':
+        reccommended_amount = 0.0004
+    if symbol == 'HBAR':
+        reccommended_amount = 10
+    return reccommended_amount
+
+
+def get_required_balances(symbol, symbol2):
+    balance_binance = get_balance_binance(symbol)
+    balance_okex = get_balance_okex(symbol)
+    balance2_binance = get_balance_binance(symbol2)
+    balance2_okex = get_balance_okex(symbol2)
+    return balance_binance, balance_okex, balance2_binance, balance2_okex
+
+
+def check_orderbooks(symbol, symbol2):
+    binance_orderbook = client_binance.get_order_book(symbol=symbol + symbol2, limit=5)
+    okex_orderbook = okex3.fetch_order_book(symbol + '/' + symbol2)
+    print(okex_orderbook)
+    print('* * * ' + symbol + symbol2 + ' * * *')
+    bids_binance = binance_orderbook.get('bids')
+    asks_binance = binance_orderbook.get('asks')
+    bids_okex = okex_orderbook.get('bids')
+    asks_okex = okex_orderbook.get('asks')
+    return bids_binance, asks_binance, bids_okex, asks_okex
+
+
+def get_first_prices(bids_binance, asks_binance, bids_okex, asks_okex):
+    first_bid_binance = float(bids_binance[0][0])
+    first_ask_binance = float(asks_binance[0][0])
+    first_bid_okex = float(bids_okex[0][0])
+    first_ask_okex = float(asks_okex[0][0])
+    return first_bid_binance, first_ask_binance, first_bid_okex, first_ask_okex
+
+
+def get_fees(first_bid_binance, first_ask_binance, first_bid_okex, first_ask_okex):
+    fee_per_price_bid_binance = first_bid_binance * 0.00105
+    fee_per_price_ask_binance = first_ask_binance * 0.00105
+    fee_per_price_bid_okex = first_bid_okex * 0.00105
+    fee_per_price_ask_okex = first_ask_okex * 0.00105
+    return fee_per_price_bid_binance, fee_per_price_ask_binance, fee_per_price_bid_okex, fee_per_price_ask_okex
+
+
+def buy_okex_sell_binance(symbol, symbol2, amount, buy_price_okex, sell_price_binance, time_stamp):
+    playsound('Ticket-machine-sound-effect.mp3')
+    print(f' buy at kucoin, sell at binance  {amount} of {symbol} using {symbol2}')
+    client_binance.order_limit_sell(symbol=symbol + symbol2, quantity=amount, price=sell_price_binance)
+    okex3.create_limit_buy_order(symbol + '/' + symbol2, amount, buy_price_okex)  # ?????????
+    message_list = [time_stamp, symbol, symbol2, amount, buy_price_okex, sell_price_binance, 'NaN', 'NaN']
+    write_log(message_list)
+
+
+def buy_binance_sell_okex(symbol, symbol2, amount, sell_price_okex, buy_price_binance, time_stamp):
+    playsound('Ticket-machine-sound-effect.mp3')
+    print(f' buy at binance, sell at kucoin  {amount} of {symbol} using {symbol2}')
+    client_binance.order_limit_buy(symbol=symbol + symbol2, quantity=amount, price=buy_price_binance)
+    okex3.create_limit_sell_order(symbol + '/' + symbol2, amount, sell_price_okex)  # ?????????
+    message_list = [time_stamp, symbol, symbol2, amount, 'NaN', 'NaN', sell_price_okex, buy_price_binance]
+    write_log(message_list)
+
+
+# print(ccxt.exchanges)
+
+get_balance_binance('BTC')
+get_balance_okex('BTC')
+get_balance_okex('HBAR')
+
+bids_binance, asks_binance, bids_okex, asks_okex = check_orderbooks('HBAR', 'BTC')
+get_first_prices(bids_binance, asks_binance, bids_okex, asks_okex)
+
