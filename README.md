@@ -5,6 +5,8 @@ Private repository for internal use.
 Bots include:
 1. Dual (simple) Arbitrage Bot (Binance-Kucoin implementation)
     working pairs == ENJBTC, FTMBTC, ENJETH, ALGOBTC
-2. Triangular Arbitrage bot (Binance)
+2. Dual (simple) Arbitrage Bot (Binance-okex implementation)
+    Working pairs == HBARBTC
+3. Triangular Arbitrage bot (Binance)
     available pairs == see file
-3. Statistical Analysis toolset for statistical arbitrage.
+4. Statistical Analysis toolset for statistical arbitrage.
