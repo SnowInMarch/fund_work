@@ -267,7 +267,7 @@ def draw_scatter_correlation(first_pair, second_pair, timeframe):
     plt.show()
 
 
-def draw_spread(data):
+def draw_spread(data, symbol1, symbol2):
     plt.figure(figsize=(13, 6))
     ax1 = plt.subplot2grid((10, 1), (0, 0), rowspan=7, colspan=1)              # defines 1st axis
 
@@ -277,7 +277,7 @@ def draw_spread(data):
     ax1.axhline(data['spread'].mean() - data['spread'].std(), color='y', linestyle='--')
     ax1.axhline(data['spread'].mean() + 2*data['spread'].std(), color='g', linestyle='--')
     ax1.axhline(data['spread'].mean() - 2*data['spread'].std(), color='g', linestyle='--')
-
+    plt.title(symbol1 + ' ' + symbol2 + ' spread')
     plt.legend(['Price Spread', 'Mean', 'Mean +/- Standart Deviation', 'Mean +/- 2 Standart Deviations'])
     plt.show()
 
@@ -363,7 +363,7 @@ def full_analysis(symbol1, symbol2, timeframe):
     # draw_scatter_correlation(symbol1, symbol2, timeframe) # 2nd graph, scatter plot of 2 prices
     # plt.scatter(first_pair_returns, second_pair_returns, color='b', marker='o', s=10) # 3rd graph, scatter plot of returns
     # plt.show()
-    # draw_spread(all_data) # 4th graph, chart of spread between 2
+    # draw_spread(all_data, symbol1, symbol2) # 4th graph, chart of spread between 2
 
     return(p_value)
 
@@ -379,25 +379,49 @@ def full_analysis(symbol1, symbol2, timeframe):
 
 
 available_pairs = ['MATICBTC', 'ETHBTC', 'BNBBTC', 'LINKBTC', 'XRPBTC', 'ADABTC', 'XMRBTC', 'LTCBTC', 'EOSBTC', 'XTZBTC', 'VETBTC', 'DASHBTC', 'ATOMBTC', 'TRXBTC', 'QTUMBTC', 'NEOBTC', 'BATBTC', 'ZECBTC', 'ONTBTC', 'XLMBTC', 'ETCBTC', 'IOTABTC']
-try:
+chosen_pairs = []
+for item in available_pairs:
+    for item2 in available_pairs:
+        if item == item2:
+            pass
+        else:
+            p_value = full_analysis(item, item2, '1h')
 
-    for item in available_pairs:
-        for item2 in available_pairs:
-            if item == item2:
-                pass
-            else:
-                p_value = full_analysis(item, item2, '4h')
+            if p_value < 0.01:
+                message = str(item) + str(item2)
+                message2 = [message]
+                write_log(message2)
+                chosen_pairs.append(message)
 
-                if p_value < 0.005:
-                    message = [f' {item}, {item2} ']
-                    write_log(message)
-except:
-    message = ['some error occured']
-    write_log(message)
+print(chosen_pairs)
+
+chosen_pairs2 = [item.replace('BTC', '') for item in chosen_pairs]
+coint_items = []
+
+for item in chosen_pairs2:
+    for item2 in chosen_pairs2:
+        if item == item2:
+            pass
+        if len(item) == 6 and len(item2) == 6:
+            if item[:3] == item2[3:] and item[-3:] == item2[:3]:
+                coint_items.append(item)
+
+        if len(item) == 7 and len(item2) == 7:
+            if item[:4] == item2[-4:] and item[-3:] == item2[:3]:
+                coint_items.append(item)
+
+        if len(item) == 8 and len(item2) == 8:
+            if item[:4] == item2[-4:] and item[-4:] == item2[:4]:
+                coint_items.append(item)
+
+        if len(item) == 9 and len(item2) == 9:
+            if item[:5] == item2[-5:] and item[-4:] == item2[:4]:
+                coint_items.append(item)
+
+len_pairs = [len(item) for item in chosen_pairs2]
+print(coint_items)
+coint_items = set(coint_items)
+print(coint_items)
 
 
-# full_analysis('ETCBTC', 'IOTABTC', '1h')
-
-
-# full_analysis('ETCBTC', 'XLMBTC', '1h') # NOT REALLY, LULZ
-
+# full_analysis('IOTABTC', 'LTCBTC', '1h')
