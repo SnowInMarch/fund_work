@@ -8,7 +8,8 @@ import datetime
 import requests
 import json
 from playsound import playsound
-
+from binance.exceptions import BinanceAPIException
+from ccxt import errors   # ???????
 
 # binance = ccxt.binance({
 #     'apiKey': 'dmuyEnfcP9Kn0ZqyjA3ZyS7C1POomhbSwvn9aEsIlw7xRCRQTGR4arurhqx8xjd2',
@@ -56,7 +57,7 @@ def get_balance_okex(symbol):
 
 
 def write_log(message):
-    with open('dual_arbitrage_log.csv', 'a') as file:
+    with open('dual_arbitrage_log_okex_binance.csv', 'a') as file:
         wfile = csv.writer(file)
         wfile.writerow(message)
 
@@ -80,7 +81,7 @@ def get_required_balances(symbol, symbol2):
 def check_orderbooks(symbol, symbol2):
     binance_orderbook = client_binance.get_order_book(symbol=symbol + symbol2, limit=5)
     okex_orderbook = okex3.fetch_order_book(symbol + '/' + symbol2)
-    print(okex_orderbook)
+    # print(okex_orderbook)
     print('* * * ' + symbol + symbol2 + ' * * *')
     bids_binance = binance_orderbook.get('bids')
     asks_binance = binance_orderbook.get('asks')
@@ -98,16 +99,16 @@ def get_first_prices(bids_binance, asks_binance, bids_okex, asks_okex):
 
 
 def get_fees(first_bid_binance, first_ask_binance, first_bid_okex, first_ask_okex):
-    fee_per_price_bid_binance = first_bid_binance * 0.00105
-    fee_per_price_ask_binance = first_ask_binance * 0.00105
-    fee_per_price_bid_okex = first_bid_okex * 0.00105
-    fee_per_price_ask_okex = first_ask_okex * 0.00105
+    fee_per_price_bid_binance = float(first_bid_binance * 0.00105)
+    fee_per_price_ask_binance = float(first_ask_binance * 0.00105)
+    fee_per_price_bid_okex = float(first_bid_okex * 0.00155)
+    fee_per_price_ask_okex = float(first_ask_okex * 0.00155)
     return fee_per_price_bid_binance, fee_per_price_ask_binance, fee_per_price_bid_okex, fee_per_price_ask_okex
 
 
 def buy_okex_sell_binance(symbol, symbol2, amount, buy_price_okex, sell_price_binance, time_stamp):
     playsound('Ticket-machine-sound-effect.mp3')
-    print(f' buy at kucoin, sell at binance  {amount} of {symbol} using {symbol2}')
+    print(f' buy at okex, sell at binance  {amount} of {symbol} using {symbol2}')
     client_binance.order_limit_sell(symbol=symbol + symbol2, quantity=amount, price=sell_price_binance)
     okex3.create_limit_buy_order(symbol + '/' + symbol2, amount, buy_price_okex)  # ?????????
     message_list = [time_stamp, symbol, symbol2, amount, buy_price_okex, sell_price_binance, 'NaN', 'NaN']
@@ -116,19 +117,130 @@ def buy_okex_sell_binance(symbol, symbol2, amount, buy_price_okex, sell_price_bi
 
 def buy_binance_sell_okex(symbol, symbol2, amount, sell_price_okex, buy_price_binance, time_stamp):
     playsound('Ticket-machine-sound-effect.mp3')
-    print(f' buy at binance, sell at kucoin  {amount} of {symbol} using {symbol2}')
+    print(f' buy at binance, sell at okex  {amount} of {symbol} using {symbol2}')
     client_binance.order_limit_buy(symbol=symbol + symbol2, quantity=amount, price=buy_price_binance)
     okex3.create_limit_sell_order(symbol + '/' + symbol2, amount, sell_price_okex)  # ?????????
     message_list = [time_stamp, symbol, symbol2, amount, 'NaN', 'NaN', sell_price_okex, buy_price_binance]
     write_log(message_list)
 
 
-# print(ccxt.exchanges)
+def find_opportunity(symbol, symbol2):
+    balance_binance, balance_okex, balance2_binance, balance2_okex = get_required_balances(symbol, symbol2)
+    bids_binance, asks_binance, bids_okex, asks_okex = check_orderbooks(symbol, symbol2)
+    first_bid_binance, first_ask_binance, first_bid_okex, first_ask_okex = \
+        get_first_prices(bids_binance, asks_binance, bids_okex, asks_okex)
+    fee_per_price_bid_binance, fee_per_price_ask_binance, fee_per_price_bid_okex, fee_per_price_ask_okex = \
+        get_fees(first_bid_binance, first_ask_binance, first_bid_okex, first_ask_okex)
 
-get_balance_binance('BTC')
-get_balance_okex('BTC')
-get_balance_okex('HBAR')
+    print('BINANCE BIDS: ' + bids_binance[0][0] + ', amount available: ' + bids_binance[0][1] + ' est fee: ' + format(fee_per_price_bid_binance, '.12f'))
+    print('BINANCE ASKS: ' + asks_binance[0][0] + ', amount available: ' + asks_binance[0][1] + ' est fee: ' + format(fee_per_price_ask_binance, '.12f'))
+    print('OKEX BIDS: ' + format(bids_okex[0][0], '.8f') + ', amount available: ' + format(bids_okex[0][1], '.8f') + ' est fee: ' + format(fee_per_price_bid_okex, '.12f'))
+    print('OKEX ASKS: ' + format(asks_okex[0][0], '.8f') + ', amount available: ' + format(asks_okex[0][1], '.8f') + ' est fee: ' + format(fee_per_price_ask_okex, '.12f'))
 
-bids_binance, asks_binance, bids_okex, asks_okex = check_orderbooks('HBAR', 'BTC')
-get_first_prices(bids_binance, asks_binance, bids_okex, asks_okex)
+    if first_bid_binance - fee_per_price_bid_binance > first_ask_okex + fee_per_price_ask_okex:
+        print('something found. checking availability, need to sell on binance and buy on okex')
+        req_amount = recommended_trading_amount(symbol)
+        req_amount2 = recommended_trading_amount(symbol2)
+        time_stamp = datetime.datetime.now()
+        if balance_binance < req_amount or float(balance2_okex) < req_amount2:
+            if balance_binance < req_amount:
+                print(f'not enough {symbol} on binance')
+            if float(balance2_okex) < req_amount2:
+                print(f'not enough {symbol2} on okex')
+            message_list_no_funds = [time_stamp, symbol, symbol2, 'order not executed', 'buy_okex', 'sell_binance',
+                                     'NaN', 'NaN']
+            write_log(message_list_no_funds)
+        else:
+            calc_profit = format((first_bid_binance - fee_per_price_bid_binance) - (first_ask_okex + fee_per_price_ask_okex), '.8f')
+            print('potential profit : ' + str(calc_profit))
+            amount_binance = float(bids_binance[0][1])
+            amount_okex = float(asks_okex[0][1])
 
+            sell_price_binance = format(first_bid_binance, '.8f')
+            buy_price_okex = format(first_ask_okex, '.8f')
+
+            if amount_binance < amount_okex:
+                available_amount = amount_binance
+            else:
+                available_amount = amount_okex
+
+            if balance_binance <= available_amount and balance_binance <= float(balance2_okex)/float(buy_price_okex):
+                amount = int(balance_binance)
+
+            elif float(balance2_okex) <= available_amount*float(buy_price_okex):  # HERE , BTC AMOUNTS HAVE TO CHECK UP
+                amount = int(float(balance2_okex) / float(buy_price_okex))
+
+            else:
+                amount = int(available_amount)
+
+            if float(amount) * float(sell_price_binance) > 0.0001000:
+                buy_okex_sell_binance(symbol, symbol2, amount, buy_price_okex, sell_price_binance, time_stamp)
+            else:
+                message = ['order size is too small', 'sell_binance', 'buy_okex']
+                print(message)
+                write_log(message)
+
+    elif first_bid_okex - fee_per_price_bid_okex > first_ask_binance + fee_per_price_ask_binance:
+        print('something found. checking availability, need to sell on okex and buy on binance')
+        req_amount = recommended_trading_amount(symbol)
+        req_amount2 = recommended_trading_amount(symbol2)
+        time_stamp = datetime.datetime.now()
+
+        if float(balance_okex) < req_amount or balance2_binance < req_amount2:
+            if float(balance_okex) < req_amount:
+                print(f'not enough {symbol} on okex')
+            if balance2_binance < req_amount2:
+                print(f'not enough {symbol2} on binance')
+            message_list_no_funds = [time_stamp, symbol, symbol2, 'order not executed', 'buy_okex', 'sell_binance',
+                                     'NaN', 'NaN']
+            write_log(message_list_no_funds)
+        else:
+            calc_profit = (first_bid_okex - fee_per_price_bid_okex) - (first_ask_binance + fee_per_price_ask_binance)
+            print('potential profit : ' + format(calc_profit, '.8f'))
+            amount_okex = float(bids_okex[0][1])
+            amount_binance = float(asks_binance[0][1])
+
+            if amount_okex < amount_binance:
+                available_amount = amount_okex
+            else:
+                available_amount = amount_binance
+
+            buy_price_binance = format(first_ask_binance, '.8f')  # DO I REALLY NEED THIS LINE?
+            sell_price_okex = format(first_bid_okex, '.8f')  # DO I REALLY NEED THIS LINE?
+
+            if float(balance_okex) <= available_amount and float(balance_okex) <= balance2_binance/float(buy_price_binance):
+                amount = int(balance_okex)
+
+            elif balance2_binance <= available_amount*float(buy_price_binance): # HERE , BTC AMOUNTS HAVE TO CHECK UP
+                amount = int(balance2_binance / float(buy_price_binance))
+
+            else:
+                amount = int(available_amount)
+            if float(amount) * float(buy_price_binance) > 0.0001000:
+                buy_binance_sell_okex(symbol, symbol2, amount, sell_price_okex, buy_price_binance, time_stamp)
+            else:
+                message = ['order size is too small', 'buy_okex', 'sell_binance']
+                print(message)
+                write_log(message)
+    else:
+        message = 'notning found'
+        print(message)
+
+x = 0
+log = []
+for x in range(3000):
+    try:
+        symbols = ['HBAR']
+        for symbol in symbols:
+            find_opportunity(symbol, 'BTC')
+
+        time.sleep(6)
+        x += 1
+    except (BinanceAPIException) as e:   # think about different exceptions handling
+        print(e.status_code, e.message)
+        message = ['API related Error', e.status_code, e.message]
+        write_log(message)
+        pass
+
+
+print('execution finished')
