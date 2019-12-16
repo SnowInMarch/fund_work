@@ -10,3 +10,5 @@ Bots include:
 3. Triangular Arbitrage bot (Binance)
     available pairs == see file
 4. Statistical Analysis toolset for statistical arbitrage.
+5. Balance toolset to check and log balances
+6. Log Files (Dual, Triangular, Stats, Balance) 
