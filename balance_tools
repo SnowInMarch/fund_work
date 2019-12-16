@@ -1,0 +1,129 @@
+from binance.client import Client as Client_binance
+from kucoin.client import Client as Client_kucoin
+import csv
+import time
+import datetime
+import sys
+import requests
+from playsound import playsound
+
+
+api_key_kucoin = '5dc906dd76ff5f62b5f5412f'
+api_secret_kucoin = 'f9cfadd0-53f0-4dd8-b39c-f1ba94691089'
+api_passphrase_kucoin = 'IvanIvan'
+client_kucoin = Client_kucoin(api_key_kucoin, api_secret_kucoin, api_passphrase_kucoin)
+
+api_key_binance = 'dmuyEnfcP9Kn0ZqyjA3ZyS7C1POomhbSwvn9aEsIlw7xRCRQTGR4arurhqx8xjd2'
+api_secret_binance = 'Klfbussl3KLaWiF0B6OMr6W79lF7vpXBYq390626wsENYMWEywsgrzVNunUS5pXa'
+client_binance = Client_binance(api_key_binance, api_secret_binance)
+# print(client_kucoin.get_accounts())
+
+
+def get_balance_kucoin(symbol):
+    if symbol == 'ALGO':
+        algo_account_info_kucoin = client_kucoin.get_account('5dc9315d3c48d512233034e9')
+        balance_kucoin = float(algo_account_info_kucoin.get('balance'))
+    if symbol == 'ENJ':
+        enj_account_info_kucoin = client_kucoin.get_account('5dca2b833c48d51223342228')
+        balance_kucoin = float(enj_account_info_kucoin.get('balance'))
+    if symbol == 'FTM':
+        ftm_account_info_kucoin = client_kucoin.get_account('5dca2b771314e112d7bcf9cf')
+        balance_kucoin = float(ftm_account_info_kucoin.get('balance'))
+    if symbol == 'BTC':
+        btc_account_info_kucoin = client_kucoin.get_account('5dca4657b84bcf1355d83b44')  # PUT ACCOUNT ID HERE
+        balance_kucoin = float(btc_account_info_kucoin.get('balance'))
+    if symbol == 'ETH':
+        eth_account_info_kucoin = client_kucoin.get_account('5dca4666e5b6921317ca12d0')  # PUT ACCOUNT ID HERE
+        balance_kucoin = float(eth_account_info_kucoin.get('balance'))
+    if symbol == 'KCS':
+        link_account_info_kucoin = client_kucoin.get_account('5dd1f79e1314e112d7f734f5')
+        balance_kucoin = float(link_account_info_kucoin.get('balance'))
+
+    return balance_kucoin
+
+
+def get_balance_binance(symbol):
+    account_info_binance = client_binance.get_asset_balance(asset=symbol)
+    balance_binance = float(account_info_binance.get('free'))
+    return balance_binance
+
+
+def get_all_accounts_balance():
+    # KUCOIN SIDE
+    algo_account_info_kucoin = client_kucoin.get_account('5dc9315d3c48d512233034e9') # ALGO
+    enj_account_info_kucoin = client_kucoin.get_account('5dca2b833c48d51223342228')  # ENJ
+    ftm_account_info_kucoin = client_kucoin.get_account('5dca2b771314e112d7bcf9cf')  # FTM
+    btc_account_info_kucoin = client_kucoin.get_account('5dca4657b84bcf1355d83b44') # PUT ACCOUNT ID HERE
+    eth_account_info_kucoin = client_kucoin.get_account('5dca4666e5b6921317ca12d0') # PUT ACCOUNT ID HERE
+    kcs_account_info_kucoin = client_kucoin.get_account('5dd1f79e1314e112d7f734f5')
+
+
+    algo_balance_kucoin = float(algo_account_info_kucoin.get('balance'))
+    enj_balance_kucoin = float(enj_account_info_kucoin.get('balance'))
+    ftm_balance_kucoin = float(ftm_account_info_kucoin.get('balance'))
+    btc_balance_kucoin = float(btc_account_info_kucoin.get('balance'))
+    eth_balance_kucoin = float(eth_account_info_kucoin.get('balance'))
+    kcs_balance_kucoin = float(kcs_account_info_kucoin.get('balance'))
+
+
+    print('ALGO balance, kucoin: ' + str(algo_balance_kucoin))
+    print('ENJ balance, kucoin: ' + str(enj_balance_kucoin))
+    print('FTM balance, kucoin: ' + str(ftm_balance_kucoin))
+    print('BTC balance, kucoin: ' + str(btc_balance_kucoin))
+    print('ETH balance, kucoin: ' + str(eth_balance_kucoin))
+    print('- - - - - - - - - - - - - - - - - - - - - - - - - -')
+
+    # BINANCE SIDE
+    algo_account_info_binance = client_binance.get_asset_balance(asset='ALGO')
+    enj_account_info_binance = client_binance.get_asset_balance(asset='ENJ')
+    ftm_account_info_binance = client_binance.get_asset_balance(asset='FTM')
+    btc_account_info_binance = client_binance.get_asset_balance(asset='BTC')
+    eth_account_info_binance = client_binance.get_asset_balance(asset='ETH')
+    bnb_account_info_binance = client_binance.get_asset_balance(asset='BNB')
+
+    algo_balance_binance = float(algo_account_info_binance.get('free'))
+    enj_balance_binance = float(enj_account_info_binance.get('free'))
+    ftm_balance_binance = float(ftm_account_info_binance.get('free'))
+    btc_balance_binance = float(btc_account_info_binance.get('free'))
+    eth_balance_binance = float(eth_account_info_binance.get('free'))
+    bnb_balance_binance = float(bnb_account_info_binance.get('free'))
+
+
+    print('ALGO balance, binance: ' + format(algo_balance_binance, '.5f'))
+    print('ENJ balance, binance: ' + format(enj_balance_binance, '.5f'))
+    print('FTM balance, binance: ' + format(ftm_balance_binance, '.5f'))
+    print('BTC balance, binance: ' + format(btc_balance_binance, '.8f'))
+    print('ETH balance, binance: ' + format(eth_balance_binance, '.5f'))
+    print('BNB balance, binance: ' + format(bnb_balance_binance, '.5f'))
+
+    print('- - - - - - - - - - - - - - - - - - - - - - - - - -')
+
+    overall_algo_balance = format((algo_balance_binance + algo_balance_kucoin), '.5f')
+    print('overall ALGO balance: ' + str(overall_algo_balance))
+    overall_enj_balance = format((enj_balance_binance + enj_balance_kucoin), '.7f')
+    print('overall ENJ balance: ' + str(overall_enj_balance))
+    overall_ftm_balance = format((ftm_balance_binance + ftm_balance_kucoin), '.3f')
+    print('overall FTM balance: ' + str(overall_ftm_balance))
+    overall_btc_balance = format((btc_balance_binance + btc_balance_kucoin), '.8f')
+    print('overall BTC balance: ' + str(overall_btc_balance))
+    overall_eth_balance = format((eth_balance_binance + eth_balance_kucoin), '.7f')
+    print('overall ETH balance: ' + str(overall_eth_balance))
+    timestamp = datetime.datetime.now()
+    timestamp = timestamp.strftime('%x %X')
+    message = [timestamp, overall_algo_balance,
+               overall_enj_balance, overall_ftm_balance,
+               overall_btc_balance, overall_eth_balance,
+               bnb_balance_binance, kcs_balance_kucoin]
+    write_log(message)
+
+
+def write_log(message):
+    with open('balance_log.csv', 'a') as file:
+        wfile = csv.writer(file)
+        wfile.writerow(message)
+
+
+get_all_accounts_balance()
+
+lol = client_kucoin.get_accounts()
+print(lol)
