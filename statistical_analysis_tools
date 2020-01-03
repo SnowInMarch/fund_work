@@ -602,13 +602,13 @@ def watcher(watchlist, timeframe):
                 full_analysis_and_plots(item[1], item[0], timeframe)
                 write_log(message)
 
+
+
             else:
                 print('nothing found')
                 print('nothing found')
                 print('nothing found')
         time.sleep(2)
-
-
 
 
 # coint_items = market_check()
@@ -624,3 +624,35 @@ for item in watchlist:
 write_log(watchlist)
 while True:
     watcher(watchlist, '1h')
+#
+
+
+# trading_amount1 = 0.1 * all_data['first_pair_price'][-1]
+# trading_amount2 = 0.1 * all_data['second_pair_price'][-1]
+# current_b1 = trading_amount1 / trading_amount2
+#
+# if spread[-1] < spread_mean - 3*spread_st_dev:
+#     playsound('') # FIND SOME OTHER SOUND
+#     # draw_spread
+#     print('Stop-loss triggered. need to sell B and buy back A + repay loan A')
+#
+# if spread[-1] > spread_mean + 3*spread_st_dev:
+#     playsound('') # FIND SOME OTHER SOUND
+#     # draw_spread
+#     print('Stop-loss triggered. need to sell A and buy back B + repay load B')
+#
+# if spread > spread_mean:
+#     print('need to finish execution. sell A and buy back + repay loan B')
+# if spread < spread_mean:
+#     print('need to finish execution. sell B and buy back + repay loan A')
+
+# 1) find trading amount - 0.1 BTC * price1 for one and 0.1 BTC * price2  for another
+#  1.1) current b1 (latest values) = x1 * b1 = y1, b1 = y1 / x1
+# 2) find stop-loss levels, 2% of overall portfolio. Think about the ways to manage. OR MAYBE 3 ST.D STOP LOSS !!!!
+# 3) place orders:
+# 3.1) place buy order for pair1 amount
+# 3.2) loan pair2 amount, sell pair2 amount
+# 4) find target values: when prices return to mean
+# 5) create open_orders_watchlist, for open orders
+# 6) two programs must monitor market separately, so open_orders_watchlist must be saved in the separate file
+# 7)
