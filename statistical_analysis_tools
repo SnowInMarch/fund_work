@@ -19,7 +19,13 @@ import csv
 from playsound import playsound
 import time
 import datetime
+from binance.client import Client as Client_binance
+from binance.exceptions import BinanceAPIException
 
+
+api_key_binance = 'dmuyEnfcP9Kn0ZqyjA3ZyS7C1POomhbSwvn9aEsIlw7xRCRQTGR4arurhqx8xjd2'
+api_secret_binance = 'Klfbussl3KLaWiF0B6OMr6W79lF7vpXBYq390626wsENYMWEywsgrzVNunUS5pXa'
+client_binance = Client_binance(api_key_binance, api_secret_binance)
 
 
 def get_stock_data(symbol, interval):
@@ -431,7 +437,7 @@ def full_analysis_watch(symbol1, symbol2, timeframe):
     print(f'mean of spread : {spread_mean}')
     print(f'st_dev of spread: {spread_st_dev}')
     last_spread_data = all_data['spread'][-1]
-    print(all_data['spread'])
+    # print(all_data['spread'])
     print(last_spread_data)
     print('[checking for stationarity of spread]')
     p_value = check_for_stationarity(all_data['spread'])
@@ -579,30 +585,35 @@ def watcher(watchlist, timeframe):
     for item in watchlist:
         p_value, spread_mean, spread_st_dev, last_spread_data, all_data = full_analysis_watch(item[0], item[1],
                                                                                               timeframe)
+        print(all_data)
         if p_value < 0.01:
             if spread_mean - (2 * spread_st_dev) >= last_spread_data:
-                playsound('Ticket-machine-sound-effect.mp3')
-                time.sleep(1)
-                playsound('Ticket-machine-sound-effect.mp3')
+                playsound('Ticket-machine-sound.mp3')
+
                 timestamp = datetime.datetime.now()
                 message = [timestamp, item[0], item[1]]
                 print(f'FOUND OPPORTUNITY {item[0]}{item[1]}')
                 full_analysis_and_plots(item[0], item[1], timeframe)
                 full_analysis_and_plots(item[1], item[0], timeframe)
                 write_log(message)
+                answer = input('Do you want to execute orders? y/n ')
+                if answer == 'y':
+                    trading_amount1, trading_amount2, price1, price2 = find_amount(item, all_data)
+                    find_targets(item[1], item[0], price2, price1)
 
             if spread_mean + (2 * spread_st_dev) <= last_spread_data:
-                playsound('Ticket-machine-sound-effect.mp3')
-                time.sleep(1)
-                playsound('Ticket-machine-sound-effect.mp3')
+                playsound('Ticket-machine-sound.mp3')
+
                 timestamp = datetime.datetime.now()
                 message = [timestamp, item[0], item[1]]
                 print(f'FOUND OPPORTUNITY {item[0]}{item[1]}')
                 full_analysis_and_plots(item[0], item[1], timeframe)
                 full_analysis_and_plots(item[1], item[0], timeframe)
                 write_log(message)
-
-
+                answer = input('Do you want to execute orders? y/n ')
+                if answer == 'y':
+                    trading_amount1, trading_amount2, price1, price2 = find_amount(item, all_data)
+                    find_targets(item[0], item[1], price1, price2)
 
             else:
                 print('nothing found')
@@ -611,8 +622,45 @@ def watcher(watchlist, timeframe):
         time.sleep(2)
 
 
-# coint_items = market_check()
-watchlist = [['ETHBTC', 'XMRBTC'], ['BNBBTC', 'XLMBTC'], ['XRPBTC', 'ETHBTC'], ['XRPBTC', 'LTCBTC'], ['ADABTC', 'XMRBTC'], ['XMRBTC', 'ETHBTC'], ['XMRBTC', 'XRPBTC'], ['LTCBTC', 'XRPBTC'], ['LTCBTC', 'ADABTC'], ['XLMBTC', 'IOTABTC'], ['IOTABTC', 'BNBBTC'], ['IOTABTC', 'XRPBTC'], ['IOTABTC', 'LTCBTC']]
+def find_amount(item, all_data):
+    trading_amount1 = 0.01 / float(all_data['first_data_close'][-1])
+    trading_amount2 = 0.01 / float(all_data['second_data_close'][-1])
+    print(f"trading amount for {item[0]} : {format(trading_amount1, '.10f')} "
+          f"price: {all_data['first_data_close'][-1]}")
+    print(f"trading amount for {item[1]} : {format(trading_amount2, '.10f')} "
+          f"price: {all_data['second_data_close'][-1]}")
+
+    current_b1 = trading_amount1 / trading_amount2
+    print(f'latest b1: {current_b1}')
+    price1 = float(all_data['first_data_close'][-1])
+    price2 = float(all_data['second_data_close'][-1])
+    return trading_amount1, trading_amount2, price1, price2
+    # buy 1
+    # loan + sell 2
+    open_orders_watchlist = []
+
+
+def find_targets(symbol1, symbol2, price1, price2): # determines STOP-LOSS price and TARGET price.
+    stop_loss_level1 = price1 - price1*0.02 # LONG THIS
+    price_target1 = price1 + price1*0.04
+    print(f'go long {symbol1}   '
+          f'stop-loss price for pair 1: {format(stop_loss_level1, ".10f")}, target price for pair 1 : {format(price_target1, ".10f")}')
+
+    stop_loss_level2 = price2 + price2*0.02 # SHORT THIS
+    price_target2 = price2 - price2*0.04
+    print(f'go short {symbol2}   '
+          f'stop-loss price for pair 2: {format(stop_loss_level2, ".10f")}, target price for pair 2 : {format(price_target2, ".10f")}')
+
+    return stop_loss_level1, stop_loss_level2, price_target1, price_target2
+
+
+def execute_orders(price1, price2, amount1, amount2):
+    pass
+
+
+# watchlist = market_check()
+watchlist = [['IOTABTC', 'XRPBTC']]
+
 print(watchlist)
 for item in watchlist:
     for item2 in watchlist:
@@ -621,16 +669,21 @@ for item in watchlist:
 
 # print(coint_items)
 # watchlist = full_graphs('1h', coint_items)
-write_log(watchlist)
+write_log([watchlist])
 while True:
     watcher(watchlist, '1h')
-#
 
 
-# trading_amount1 = 0.1 * all_data['first_pair_price'][-1]
-# trading_amount2 = 0.1 * all_data['second_pair_price'][-1]
-# current_b1 = trading_amount1 / trading_amount2
-#
+# 1) find trading amount - 0.1 BTC * price1 for one and 0.1 BTC * price2  for another
+#  1.1) current b1 (latest values) = x1 * b1 = y1, b1 = y1 / x1
+# 2) find stop-loss levels, 2% of overall portfolio. Think about the ways to manage. OR MAYBE 3 ST.D STOP LOSS !!!!
+# 3) place orders:
+# 3.1) place buy order for pair1 amount
+# 3.2) loan pair2 amount, sell pair2 amount
+
+
+# 5) create open_orders_watchlist, for open orders
+# find target values: when prices return to mean
 # if spread[-1] < spread_mean - 3*spread_st_dev:
 #     playsound('') # FIND SOME OTHER SOUND
 #     # draw_spread
@@ -646,13 +699,5 @@ while True:
 # if spread < spread_mean:
 #     print('need to finish execution. sell B and buy back + repay loan A')
 
-# 1) find trading amount - 0.1 BTC * price1 for one and 0.1 BTC * price2  for another
-#  1.1) current b1 (latest values) = x1 * b1 = y1, b1 = y1 / x1
-# 2) find stop-loss levels, 2% of overall portfolio. Think about the ways to manage. OR MAYBE 3 ST.D STOP LOSS !!!!
-# 3) place orders:
-# 3.1) place buy order for pair1 amount
-# 3.2) loan pair2 amount, sell pair2 amount
-# 4) find target values: when prices return to mean
-# 5) create open_orders_watchlist, for open orders
 # 6) two programs must monitor market separately, so open_orders_watchlist must be saved in the separate file
 # 7)
