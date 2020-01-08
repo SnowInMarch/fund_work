@@ -1,0 +1,19 @@
+    print(len(first_pair_clean)) # YESYESYESYES
+    print(len(second_pair_clean))
+    if len(first_pair_clean) > len(second_pair_clean):
+        difference = len(first_pair_clean) - len(second_pair_clean)
+        print(difference)
+        first_pair_clean_list = list(first_pair_clean)
+        del first_pair_clean_list[:difference]
+        first_pair_clean = np.array(first_pair_clean_list)
+        second_pair_clean = second_pair_clean
+    if len(second_pair_clean) > len(first_pair_clean):
+        difference = len(second_pair_clean) - len(first_pair_clean)
+        print(difference)
+        second_pair_clean_list = list(second_pair_clean)
+        del second_pair_clean_list[:difference]
+        second_pair_clean = np.array(second_pair_clean_list)
+        first_pair_clean = first_pair_clean
+
+    print(len(first_pair_clean))
+    print(len(second_pair_clean)) # YESYESYESYES
