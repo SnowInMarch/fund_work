@@ -673,7 +673,7 @@ def watcher(watchlist, timeframe):
         p_value, spread_mean, spread_st_dev, last_spread_data, all_data = full_analysis_watch(item[0], item[1],
                                                                                               timeframe)
         # print(all_data)
-        if p_value < 0.01:
+        if p_value < 0.02:
             if spread_mean - (2 * spread_st_dev) >= last_spread_data:
                 playsound('Ticket-machine-sound.mp3')
 
@@ -777,8 +777,8 @@ def open_orders_watcher(watchlist, timeframe):
     for item in watchlist:
         p_value, spread_mean, spread_st_dev, last_spread_data, all_data = full_analysis_watch(item[0], item[1],
                                                                                               timeframe)
-        # print(all_data)
-        if p_value < 0.01:
+        # add the second part of the equation : item[1], item[0]
+        if p_value < 0.03:
             if spread_mean - (0.5 * spread_st_dev) <= last_spread_data and spread_mean + (0.5 * spread_st_dev) >= last_spread_data:
                 playsound('Ticket-machine-sound.mp3')
 
@@ -841,11 +841,11 @@ def find_amount(item, all_data): # change it to respect long and short values? n
     trading_amount1 = 0.005 / float(list(all_data['first_data_close'])[-1])
     trading_amount2 = 0.005 / float(list(all_data['second_data_close'])[-1])
     trading_amount1 = round(round_down(trading_amount1, abs(precision1)), abs(precision1))
-    trading_amount2 = round(round_down(trading_amount2, abs(precision2)), abs(precision1))
+    trading_amount2 = round(round_down(trading_amount2, abs(precision2)), abs(precision2))
     print(f"trading amount for {item[0]} : {format(trading_amount1, '.10f')} "
-          f"price: {list(all_data['first_data_close'])[-1]}")
-    print(f"trading amoaunt for {item[1]} : {format(trading_amount2, '.10f')} "
-          f"price: {list(all_data['second_data_close'])[-1]}")
+          f"price: {format(list(all_data['first_data_close'])[-1], '.8f')}")
+    print(f"trading amount for {item[1]} : {format(trading_amount2, '.10f')} "
+          f"price: {format(list(all_data['second_data_close'])[-1], '.8f')}")
 
     current_b1 = trading_amount1 / trading_amount2
     print(f'latest b1: {current_b1}')
@@ -893,10 +893,9 @@ def execute_orders(pair_long, pair_short, price_long, price_short, amount_long, 
 # full_analysis_and_plots('RVNBTC', 'ONTBTC', '1d')
 timeframe = '1h'
 
-# watchlist = market_check(timeframe)
-watchlist = [['RVNBTC', 'QTUMBTC'], ['RVNBTC', 'XLMBTC'], ['BNBBTC', 'ETHBTC'], ['LINKBTC', 'RVNBTC'], ['ADABTC', 'XRPBTC'], ['QTUMBTC', 'XLMBTC'], ['NEOBTC', 'BNBBTC'], ['ONTBTC', 'RVNBTC'], ['IOTABTC', 'ZECBTC']]
-
-
+watchlist = market_check(timeframe)
+# watchlist = [['RVNBTC', 'QTUMBTC'], ['RVNBTC', 'XLMBTC'], ['BNBBTC', 'ETHBTC'], ['LINKBTC', 'RVNBTC'], ['ADABTC', 'XRPBTC'], ['QTUMBTC', 'XLMBTC'], ['NEOBTC', 'BNBBTC'], ['ONTBTC', 'RVNBTC'], ['IOTABTC', 'ZECBTC']]
+watchlist2 = [['NEOBTC', 'EOSBTC'], ['IOTABTC', 'ZECBTC']]
 # open_orders_watchlist = []
 # watchlist = full_graphs(timeframe, coint_items)
 timestamp = datetime.datetime.now()
@@ -904,5 +903,7 @@ write_log('statistical_analysis_log.csv', [timestamp, timeframe])
 write_log('statistical_analysis_log.csv', [watchlist])
 while True:
     watcher(watchlist, timeframe)
-    # open_orders_watcher(watchlist, timeframe)
+    open_orders_watcher(watchlist2, timeframe)
 
+
+IOTABTC,0.00002326,214.0,0.00002419,0.00002279,???,ZECBTC,0.00435100,1.0,0.00417696,0.00443802,???,2020-01-11 16:44:31.200960
