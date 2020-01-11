@@ -709,6 +709,7 @@ def watcher(watchlist, timeframe):
                 stop_loss_level1, stop_loss_level2, price_target1, price_target2 = find_targets(item[0], item[1], price1, price2)
 
                 write_log('statistical_analysis_log.csv', message)
+                answer_charts = input('Do you want to open the charts? y/n ')
                 if answer_charts == 'y':
                     webbrowser.open('https://www.binance.com/en/trade/' + item[0].replace('BTC', '_BTC'))
                     webbrowser.open('https://www.binance.com/en/trade/' + item[1].replace('BTC', '_BTC'))
@@ -892,8 +893,8 @@ def execute_orders(pair_long, pair_short, price_long, price_short, amount_long, 
 # full_analysis_and_plots('RVNBTC', 'ONTBTC', '1d')
 timeframe = '1h'
 
-watchlist = market_check(timeframe)
-# watchlist = 
+# watchlist = market_check(timeframe)
+watchlist = [['RVNBTC', 'QTUMBTC'], ['RVNBTC', 'XLMBTC'], ['BNBBTC', 'ETHBTC'], ['LINKBTC', 'RVNBTC'], ['ADABTC', 'XRPBTC'], ['QTUMBTC', 'XLMBTC'], ['NEOBTC', 'BNBBTC'], ['ONTBTC', 'RVNBTC'], ['IOTABTC', 'ZECBTC']]
 
 
 # open_orders_watchlist = []
