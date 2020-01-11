@@ -7,7 +7,7 @@ import json                     # reading json files
 from mpl_finance import candlestick_ohlc  # to draw candlesticks
 import matplotlib.dates as mdates           # to convert dates to matplotlib supported format
 import random
-from sklearn.linear_model import LinearRegression  # linear regression modelling tool for B1 and B0 (seems to work fine)
+from sklearn.linear_model import LinearRegression  # linear regression modelling tool for B1 and B0
 import statsmodels.tsa.stattools as ts
 import scipy.stats as stats
 from pandas.plotting import register_matplotlib_converters
@@ -23,10 +23,10 @@ from binance.client import Client as Client_binance
 from binance.exceptions import BinanceAPIException
 import math
 from binance.enums import *
+import webbrowser
 
-
-api_key_binance = 'dmuyEnfcP9Kn0ZqyjA3ZyS7C1POomhbSwvn9aEsIlw7xRCRQTGR4arurhqx8xjd2'
-api_secret_binance = 'Klfbussl3KLaWiF0B6OMr6W79lF7vpXBYq390626wsENYMWEywsgrzVNunUS5pXa'
+api_key_binance = '727YC8ID6JWY4ZyddcZnqAi7wCHfZpEHeJzWumKGRK57laLRsbxfuD5335OaODwh'
+api_secret_binance = '0CR88F73lx2fWtvH62NhOtFkaVQ6GnlDUq1skwIS6tA2uw3MJEft2NYdzcxYADoL'
 client_binance = Client_binance(api_key_binance, api_secret_binance)
 
 
@@ -35,10 +35,12 @@ def get_stock_data(symbol, interval):
     url = root_url + '?symbol=' + symbol + '&interval=' + interval
     # print(url)
     data = json.loads(requests.get(url).text)
-    df = pd.DataFrame(data)
-    df.columns = ['open_time', 'o', 'h', 'l', 'c', 'volume',
+    df = pd.DataFrame(data, columns=['open_time', 'o', 'h', 'l', 'c', 'volume',
                   'close_time', 'qav', 'num_trades',
-                  'taker_base_vol', 'taker_quote_vol', 'ignore']
+                  'taker_base_vol', 'taker_quote_vol', 'ignore'])
+    # df.columns = ['open_time', 'o', 'h', 'l', 'c', 'volume',
+    #               'close_time', 'qav', 'num_trades',
+    #               'taker_base_vol', 'taker_quote_vol', 'ignore']
     df.index = [dt.datetime.fromtimestamp(x/1000.0) for x in df.close_time]
     df['returns'] = df['c'].astype(float).pct_change(1)
 
@@ -95,19 +97,19 @@ def draw_candle_chart(stock):  # NEED TO MAKE DATES DISPLAY PROPERLY
     plt.show()
 
 # prints many graphs on the same chart
-def compile_data(stock1, stock2, timeframe):
+def compile_data(stock1, stock2, all_data, timeframe):
+    print(all_data)
     price_data = []
-    # available_pairs = ['HOTBTC', 'HBARBTC', 'LINKBTC', 'RENBTC', 'ETHBTC', 'NEOBTC', 'XRPBTC', 'TRXBTC', 'CHZBTC', 'VETBTC', 'ONTBTC', 'QTUMBTC', 'ATOMBTC', 'XLMBTC', 'FETBTC', 'BATBTC', 'ETCBTC', 'XMRBTC', 'MATICBTC', 'ADABTC', 'BEAMBTC', 'KAVABTC', 'ICXBTC', 'ARPABTC', 'XTZBTC', 'NKNBTC', 'COCOSBTC', 'ERDBTC', 'EOSBTC', 'NULSBTC', 'IOTABTC', 'DOGEBTC', 'ONEBTC', 'TOMOBTC', 'OMGBTC', 'HCBTC', 'LTCBTC', 'MTLBTC', 'STXBTC', 'ZILBTC', 'WAVESBTC', 'BANDBTC', 'DUSKBTC', 'ALGOBTC', 'STORMBTC', 'FUNBTC', 'PERLBTC', 'CELRBTC', 'THETABTC', 'KEYBTC', 'FTMBTC', 'ENJBTC', 'GTOBTC']
-    # available_pairs = ['BANDBTC', 'ONEBTC', 'PERLBTC', 'KAVABTC', 'CELRBTC']
-    # ALL MARGIN TRADING ON BINANCE ---  available_pairs = ['MATICBTC', 'ETHBTC', 'BNBBTC', 'LINKBTC', 'XRPBTC', 'ADABTC', 'XMRBTC', 'LTCBTC', 'EOSBTC', 'XTZBTC', 'VETBTC', 'DASHBTC', 'ATOMBTC', 'TRXBTC', 'QTUMBTC', 'BCHBTC', 'NEOBTC', 'BATBTC', 'IOSTBTC', 'ZECBTC', 'ONTBTC', 'XLMBTC', 'ETCBTC', 'IOTABTC']
-    # available_pairs = ['ETHBTC', 'BNBBTC', 'LINKBTC', 'XRPBTC', 'ADABTC', 'XMRBTC', 'LTCBTC', 'EOSBTC', 'XTZBTC', 'VETBTC', 'DASHBTC', 'ATOMBTC', 'TRXBTC', 'QTUMBTC', 'BCHBTC', 'NEOBTC', 'BATBTC', 'IOSTBTC', 'ZECBTC', 'ONTBTC', 'XLMBTC', 'ETCBTC', 'IOTABTC']
-    # available_pairs = random.choices(pairs, k=3)  # chooses random 3 pairs (for analysis)
     available_pairs = [stock1, stock2]
-    for pair in available_pairs:
-        data = get_stock_data(pair, timeframe)
+    # for item in available_pairs:
+        # data = get_stock_data(pair, timeframe)
+        # data_clean = clean_data(data)
         # print(pair)
-        price_data.append(data['c'].astype('float'))
+    price_data.append(all_data['first_data_close'].astype('float'))
+    price_data.append(all_data['second_data_close'].astype('float'))
+
     # print(price_data)
+    print(price_data)
     combination_graph = pd.concat(price_data, axis=1)
     combination_graph.columns = available_pairs
     combination_graph.div(combination_graph.iloc[0]).plot(figsize=(16, 9))
@@ -117,6 +119,28 @@ def compile_data(stock1, stock2, timeframe):
 def clean_data(data):
     price_data = np.array(data['c'].astype('float'))
     return price_data
+
+
+def adjust_df_size(first_pair_clean, second_pair_clean):
+    print(len(first_pair_clean))
+    print(len(second_pair_clean))
+    if len(first_pair_clean) > len(second_pair_clean):
+        difference = len(first_pair_clean) - len(second_pair_clean)
+        print(difference)
+        first_pair_clean_list = list(first_pair_clean)
+        del first_pair_clean_list[:difference]
+        first_pair_clean = np.array(first_pair_clean_list)
+        second_pair_clean = second_pair_clean
+    if len(second_pair_clean) > len(first_pair_clean):
+        difference = len(second_pair_clean) - len(first_pair_clean)
+        print(difference)
+        second_pair_clean_list = list(second_pair_clean)
+        del second_pair_clean_list[:difference]
+        second_pair_clean = np.array(second_pair_clean_list)
+        first_pair_clean = first_pair_clean
+    print(len(first_pair_clean))
+    print(len(second_pair_clean))
+    return first_pair_clean, second_pair_clean
 
 
 # sklearn funktion to measure linear regression (линейная регрессия)
@@ -209,15 +233,11 @@ def residuals_mean(data):
     return residual_from_mean_data  # SST RELATED STUFF
 
 
-def write_log(message):
-    with open('statistical_analysis_log.csv', 'a') as file:
+def write_log(file_name, message):
+    with open(file_name, 'a') as file:
         wfile = csv.writer(file)
         wfile.writerow(message)
 
-def write_log2(message):
-    with open('statistical_analysis_open_orders.csv', 'a') as file:
-        wfile = csv.writer(file)
-        wfile.writerow(message)
 
 # SSE/SST - how many errors out of all data  <<<<<<<< WORK ON IT
 def sst_sse_ssr(data, data2):
@@ -271,12 +291,11 @@ def check_for_stationarity(data, cutoff=0.01):
     print(values)
     print(f'p-value:  {p_value}')
     if p_value < cutoff:
-        print('p-value = ' + format(p_value, '.15f') + ' The series is likely stationary LOL.')
+        print('p-value = ' + format(p_value, '.15f') + ' The series is likely STATIONARY.')
         return p_value
     else:
-        print('p-value = ' + format(p_value, '.15f') + ' The series is likely non-stationary.')
+        print('p-value = ' + format(p_value, '.15f') + ' The series is likely NON-STATIONARY.')
         return p_value
-
 
 
 def draw_4_charts(first_pair, second_pair, timeframe):
@@ -285,18 +304,24 @@ def draw_4_charts(first_pair, second_pair, timeframe):
     second_pair_data = get_stock_data(second_pair, timeframe)
     first_pair_data_clean = clean_data(first_pair_data)
     second_pair_data_clean = clean_data(second_pair_data)
+    first_pair_data_clean, second_pair_data_clean = adjust_df_size(first_pair_data_clean, second_pair_data_clean)
+    all_data = pd.DataFrame()
+    all_data['first_data_close'] = first_pair_data_clean
+    all_data['second_data_close'] = second_pair_data_clean
 
     b1, b0 = find_linear_regression(first_pair_data_clean, second_pair_data_clean)
-    first_pair_data['returns'] = first_pair_data['c'].astype(float).pct_change(1)
-    first_pair_returns = first_pair_data['returns'].astype(float).dropna()
-    # plt.
-    second_pair_data['returns'] = second_pair_data['c'].astype(float).pct_change(1)
-    second_pair_returns = second_pair_data['returns'].astype(float).dropna()
+
+    # getting returns data (% change)
+    all_data['first_pair_returns'] = all_data['first_data_close'].astype(float).pct_change(1)
+    first_pair_returns = all_data['first_pair_returns'].astype(float).dropna()
+    # print(first_pair_returns)
+    # getting returns data (% change)
+    all_data['second_pair_returns'] = all_data['second_data_close'].astype(float).pct_change(1)
+    second_pair_returns = all_data['second_pair_returns'].astype(float).dropna()
+    # print(len(second_pair_returns))
 # THIS IS 2 GRAPH, CORRELATION OF PRICES
 ########################################################################
-    all_data = pd.DataFrame()
-    all_data['first_data_close'] = (first_pair_data['c'])
-    all_data['second_data_close'] = (second_pair_data['c'])
+
     all_data['spread'] = all_data['second_data_close'].astype(float) - b1 * all_data['first_data_close'].astype(float)
     all_data['spread2'] = all_data['first_data_close'].astype(float) - b1 * all_data['second_data_close'].astype(float)
     # print(all_data)
@@ -313,9 +338,10 @@ def draw_4_charts(first_pair, second_pair, timeframe):
     # ax1.plot(all_data.index, all_data['second_data_close'].astype('float'))  # SHOWS MAIN STOCK PRICE ON GRAPH
 
     ax1.scatter(first_pair_data_clean, second_pair_data_clean, color='b', marker='o', s=10, label='scatter of prices')
-    ax2.scatter(first_pair_returns, second_pair_returns, color='b', marker='o', s=10)
+    ax2.scatter(all_data['first_pair_returns'], all_data['second_pair_returns'], color='b', marker='o', s=10)
 
     ax3.plot(all_data['spread'])
+    # ax3.plot(all_data['spread2'], color='gray') # ???????????????????????????????????????
     ax3.axhline(all_data['spread'].mean(), color='red', linestyle='--')
     ax3.axhline(all_data['spread'].mean() + all_data['spread'].std(), color='y', linestyle='--')
     ax3.axhline(all_data['spread'].mean() - all_data['spread'].std(), color='y', linestyle='--')
@@ -332,6 +358,7 @@ def draw_4_charts(first_pair, second_pair, timeframe):
 # finding
 # building spread
 
+
 def full_analysis(symbol1, symbol2, timeframe):
     print(f'[ {symbol1} {symbol2} {timeframe} ]')
     print('[' + symbol1 + ']')
@@ -340,10 +367,6 @@ def full_analysis(symbol1, symbol2, timeframe):
     first_pair_data = get_stock_data(symbol1, timeframe)
     first_pair_clean = clean_data(first_pair_data)
 
-    # getting returns data (% change)
-    first_pair_data['returns'] = first_pair_data['c'].astype(float).pct_change(1)
-    first_pair_returns = first_pair_data['returns'].astype(float).dropna()
-
     # looking for mean, st.dev, and observations within st.dev for symbol1
     mean_first_pair = find_mean(first_pair_clean)
     st_dev_first = find_stdev(first_pair_clean)
@@ -355,26 +378,33 @@ def full_analysis(symbol1, symbol2, timeframe):
     second_pair_data = get_stock_data(symbol2, timeframe)
     second_pair_clean = clean_data(second_pair_data)
 
-    # getting returns data (% change)
-    second_pair_data['returns'] = second_pair_data['c'].astype(float).pct_change(1)
-    second_pair_returns = second_pair_data['returns'].astype(float).dropna()
-
     # looking for mean, st.dev, and observations within st.dev for symbol2
     mean_second_pair = find_mean(second_pair_clean)
     st_dev_second = find_stdev(second_pair_clean)
     observations_within_stdev(second_pair_clean)
 
+    first_pair_clean, second_pair_clean = adjust_df_size(first_pair_clean, second_pair_clean)
+    all_data = pd.DataFrame()
+    all_data['first_data_close'] = first_pair_clean
+    all_data['second_data_close'] = second_pair_clean
+
+    # getting returns data (% change)
+    all_data['first_pair_returns'] = all_data['first_data_close'].astype(float).pct_change(1)
+    first_pair_returns = all_data['first_pair_returns'].astype(float).dropna()
+    # print(first_pair_returns)
+    # getting returns data (% change)
+    all_data['second_pair_returns'] = all_data['second_data_close'].astype(float).pct_change(1)
+    second_pair_returns = all_data['second_pair_returns'].astype(float).dropna()
+    # print(len(second_pair_returns))
+
     print('[regression analyis]')
     b1, b0 = find_regression(symbol1, symbol2, first_pair_clean, second_pair_clean)
     find_linear_regression(first_pair_clean, second_pair_clean)
 
-    print('[looking for residuals]')
+    print('[looking for residuals]') # expand some work here
     residuals_data = residuals(first_pair_clean, second_pair_clean, b1, b0)
 
     print('[building spread]')
-    all_data = pd.DataFrame()
-    all_data['first_data_close'] = (first_pair_data['c'])
-    all_data['second_data_close'] = (second_pair_data['c'])
     all_data['spread'] = all_data['second_data_close'].astype(float) - b1 * all_data['first_data_close'].astype(float)
     # print(all_data)
     spread_mean = np.mean(all_data['spread'])
@@ -386,14 +416,73 @@ def full_analysis(symbol1, symbol2, timeframe):
     p_value = check_for_stationarity(all_data['spread'])
     # if p_value < 0.01:
     #     print('[plotting graphs]')
-    #     compile_data(symbol1, symbol2, timeframe)  # 1st graph, 2 charts together
-    #     draw_scatter_correlation(symbol1, symbol2, timeframe) # 2nd graph, scatter plot of 2 prices
-    #     plt.scatter(first_pair_returns, second_pair_returns, color='b', marker='o', s=10) # 3rd graph, scatter plot of returns
+    #     compile_data(symbol1, symbol2, all_data, timeframe)  # 1st graph, 2 charts together
+    #     # draw_scatter_correlation(symbol1, symbol2, timeframe) # 2nd graph, scatter plot of 2 prices
+    #     plt.scatter(first_pair_clean, second_pair_clean, color='b', marker='o', s=10,
+    #                 label='scatter of prices')
+    #     plt.show()
+    #     plt.scatter(first_pair_returns, second_pair_returns, color='b', marker='o', s=10, label='scatter of returns') # 3rd graph, scatter plot of returns
     #     plt.show()
     #     draw_spread(all_data, symbol1, symbol2) # 4th graph, chart of spread between 2
+
     return(p_value)
 
+
 def full_analysis_watch(symbol1, symbol2, timeframe):
+    # print(f'[ {symbol1} {symbol2} {timeframe} ]')
+    # print('[' + symbol1 + ']')
+    #
+    # # getting the symbol1 data and cleaning it
+    # first_pair_data = get_stock_data(symbol1, timeframe)
+    # first_pair_clean = clean_data(first_pair_data)
+    #
+    # # getting returns data (% change)
+    # first_pair_data['returns'] = first_pair_data['c'].astype(float).pct_change(1)
+    # first_pair_returns = first_pair_data['returns'].astype(float).dropna()
+    #
+    # # looking for mean, st.dev, and observations within st.dev for symbol1
+    # mean_first_pair = find_mean(first_pair_clean)
+    # st_dev_first = find_stdev(first_pair_clean)
+    # observations_within_stdev(first_pair_clean)
+    #
+    # print('[' + symbol2 + ']')
+    #
+    # # getting the symbol2 data and cleaning it
+    # second_pair_data = get_stock_data(symbol2, timeframe)
+    # second_pair_clean = clean_data(second_pair_data)
+    #
+    # # getting returns data (% change)
+    # second_pair_data['returns'] = second_pair_data['c'].astype(float).pct_change(1)
+    # second_pair_returns = second_pair_data['returns'].astype(float).dropna()
+    #
+    # # looking for mean, st.dev, and observations within st.dev for symbol2
+    # mean_second_pair = find_mean(second_pair_clean)
+    # st_dev_second = find_stdev(second_pair_clean)
+    # observations_within_stdev(second_pair_clean)
+    #
+    # print('[regression analyis]')
+    # b1, b0 = find_regression(symbol1, symbol2, first_pair_clean, second_pair_clean)
+    # find_linear_regression(first_pair_clean, second_pair_clean)
+    #
+    # print('[looking for residuals]')
+    # residuals_data = residuals(first_pair_clean, second_pair_clean, b1, b0)
+    #
+    # print('[building spread]')
+    # all_data = pd.DataFrame()
+    # all_data['first_data_close'] = (first_pair_data['c'])
+    # all_data['second_data_close'] = (second_pair_data['c'])
+    # all_data['spread'] = all_data['second_data_close'].astype(float) - b1 * all_data['first_data_close'].astype(float)
+    # # print(all_data)
+    # spread_mean = np.mean(all_data['spread'])
+    # spread_st_dev = np.std(all_data['spread'])
+    # print(f'mean of spread : {spread_mean}')
+    # print(f'st_dev of spread: {spread_st_dev}')
+    # last_spread_data = all_data['spread'][-1]
+    # # print(all_data['spread'])
+    # print(last_spread_data)
+    # print('[checking for stationarity of spread]')
+    # p_value = check_for_stationarity(all_data['spread'])
+
     print(f'[ {symbol1} {symbol2} {timeframe} ]')
     print('[' + symbol1 + ']')
 
@@ -401,10 +490,6 @@ def full_analysis_watch(symbol1, symbol2, timeframe):
     first_pair_data = get_stock_data(symbol1, timeframe)
     first_pair_clean = clean_data(first_pair_data)
 
-    # getting returns data (% change)
-    first_pair_data['returns'] = first_pair_data['c'].astype(float).pct_change(1)
-    first_pair_returns = first_pair_data['returns'].astype(float).dropna()
-
     # looking for mean, st.dev, and observations within st.dev for symbol1
     mean_first_pair = find_mean(first_pair_clean)
     st_dev_first = find_stdev(first_pair_clean)
@@ -416,44 +501,44 @@ def full_analysis_watch(symbol1, symbol2, timeframe):
     second_pair_data = get_stock_data(symbol2, timeframe)
     second_pair_clean = clean_data(second_pair_data)
 
-    # getting returns data (% change)
-    second_pair_data['returns'] = second_pair_data['c'].astype(float).pct_change(1)
-    second_pair_returns = second_pair_data['returns'].astype(float).dropna()
-
     # looking for mean, st.dev, and observations within st.dev for symbol2
     mean_second_pair = find_mean(second_pair_clean)
     st_dev_second = find_stdev(second_pair_clean)
     observations_within_stdev(second_pair_clean)
 
+    first_pair_clean, second_pair_clean = adjust_df_size(first_pair_clean, second_pair_clean)
+    all_data = pd.DataFrame()
+    all_data['first_data_close'] = first_pair_clean
+    all_data['second_data_close'] = second_pair_clean
+
+    # getting returns data (% change)
+    all_data['first_pair_returns'] = all_data['first_data_close'].astype(float).pct_change(1)
+    first_pair_returns = all_data['first_pair_returns'].astype(float).dropna()
+    # print(first_pair_returns)
+    # getting returns data (% change)
+    all_data['second_pair_returns'] = all_data['second_data_close'].astype(float).pct_change(1)
+    second_pair_returns = all_data['second_pair_returns'].astype(float).dropna()
+    # print(len(second_pair_returns))
+
     print('[regression analyis]')
     b1, b0 = find_regression(symbol1, symbol2, first_pair_clean, second_pair_clean)
     find_linear_regression(first_pair_clean, second_pair_clean)
 
-    print('[looking for residuals]')
+    print('[looking for residuals]') # expand some work here
     residuals_data = residuals(first_pair_clean, second_pair_clean, b1, b0)
 
     print('[building spread]')
-    all_data = pd.DataFrame()
-    all_data['first_data_close'] = (first_pair_data['c'])
-    all_data['second_data_close'] = (second_pair_data['c'])
     all_data['spread'] = all_data['second_data_close'].astype(float) - b1 * all_data['first_data_close'].astype(float)
     # print(all_data)
     spread_mean = np.mean(all_data['spread'])
     spread_st_dev = np.std(all_data['spread'])
     print(f'mean of spread : {spread_mean}')
     print(f'st_dev of spread: {spread_st_dev}')
-    last_spread_data = all_data['spread'][-1]
-    # print(all_data['spread'])
-    print(last_spread_data)
+    spread_data = list(all_data['spread']) # maybe something related to shape <500? nope
+    last_spread_data = spread_data[-1]
+    # print(last_spread_data)
     print('[checking for stationarity of spread]')
     p_value = check_for_stationarity(all_data['spread'])
-    # if p_value < 0.01:
-    #     print('[plotting graphs]')
-    #     compile_data(symbol1, symbol2, timeframe)  # 1st graph, 2 charts together
-    #     draw_scatter_correlation(symbol1, symbol2, timeframe) # 2nd graph, scatter plot of 2 prices
-    #     plt.scatter(first_pair_returns, second_pair_returns, color='b', marker='o', s=10) # 3rd graph, scatter plot of returns
-    #     plt.show()
-    # draw_spread(all_data, symbol1, symbol2) # 4th graph, chart of spread between 2
     return p_value, spread_mean, spread_st_dev, last_spread_data, all_data
 
 
@@ -465,10 +550,6 @@ def full_analysis_and_plots(symbol1, symbol2, timeframe):
     first_pair_data = get_stock_data(symbol1, timeframe)
     first_pair_clean = clean_data(first_pair_data)
 
-    # getting returns data (% change)
-    first_pair_data['returns'] = first_pair_data['c'].astype(float).pct_change(1)
-    first_pair_returns = first_pair_data['returns'].astype(float).dropna()
-
     # looking for mean, st.dev, and observations within st.dev for symbol1
     mean_first_pair = find_mean(first_pair_clean)
     st_dev_first = find_stdev(first_pair_clean)
@@ -480,27 +561,33 @@ def full_analysis_and_plots(symbol1, symbol2, timeframe):
     second_pair_data = get_stock_data(symbol2, timeframe)
     second_pair_clean = clean_data(second_pair_data)
 
-    # getting returns data (% change)
-    second_pair_data['returns'] = second_pair_data['c'].astype(float).pct_change(1)
-    second_pair_returns = second_pair_data['returns'].astype(float).dropna()
-
     # looking for mean, st.dev, and observations within st.dev for symbol2
     mean_second_pair = find_mean(second_pair_clean)
     st_dev_second = find_stdev(second_pair_clean)
     observations_within_stdev(second_pair_clean)
 
+    first_pair_clean, second_pair_clean = adjust_df_size(first_pair_clean, second_pair_clean)
+    all_data = pd.DataFrame()
+    all_data['first_data_close'] = first_pair_clean
+    all_data['second_data_close'] = second_pair_clean
+
+    # getting returns data (% change)
+    all_data['first_pair_returns'] = all_data['first_data_close'].astype(float).pct_change(1)
+    first_pair_returns = all_data['first_pair_returns'].astype(float).dropna()
+    print(first_pair_returns)
+    # getting returns data (% change)
+    all_data['second_pair_returns'] = all_data['second_data_close'].astype(float).pct_change(1)
+    second_pair_returns = all_data['second_pair_returns'].astype(float).dropna()
+    print(len(second_pair_returns))
+
     print('[regression analyis]')
     b1, b0 = find_regression(symbol1, symbol2, first_pair_clean, second_pair_clean)
     find_linear_regression(first_pair_clean, second_pair_clean)
-    print(f''' trade {0.01 / first_pair_clean[-1]} of {symbol1} at price {format(first_pair_clean[-1], '.8f')}  
-trade {0.01 / second_pair_clean[-1]} of {symbol2} at price {second_pair_clean[-1]}''')
-    print('[looking for residuals]')
+
+    print('[looking for residuals]') # expand some work here
     residuals_data = residuals(first_pair_clean, second_pair_clean, b1, b0)
 
     print('[building spread]')
-    all_data = pd.DataFrame()
-    all_data['first_data_close'] = (first_pair_data['c'])
-    all_data['second_data_close'] = (second_pair_data['c'])
     all_data['spread'] = all_data['second_data_close'].astype(float) - b1 * all_data['first_data_close'].astype(float)
     # print(all_data)
     spread_mean = np.mean(all_data['spread'])
@@ -512,33 +599,22 @@ trade {0.01 / second_pair_clean[-1]} of {symbol2} at price {second_pair_clean[-1
     p_value = check_for_stationarity(all_data['spread'])
     if p_value < 0.01:
         print('[plotting graphs]')
-        compile_data(symbol1, symbol2, timeframe)  # 1st graph, 2 charts together
-        # draw_scatter_correlation(symbol1, symbol2, timeframe) # 2nd graph, scatter plot of 2 prices
-        # plt.scatter(first_pair_returns, second_pair_returns, color='b', marker='o', s=10) # 3rd graph, scatter plot of returns
-        # plt.show()
-        # draw_spread(all_data, symbol1, symbol2) # 4th graph, chart of spread between 2
-        draw_4_charts(symbol1, symbol2, timeframe)
+        compile_data(symbol1, symbol2, all_data, timeframe)  # 1st graph, 2 charts together
+        draw_4_charts(symbol1, symbol2, timeframe) # 2nd page, scatter of prices, scatter of returns, spread +-stdev
     return p_value
-    # add scatter correlation visuals
-    # create a visual part of the analysis:
-    # chart of 1st pair,
-    # chart of 2nd pair,
-    # scatter plot of both.
-    # scatter plot of returns
-    # spread of returns
-    # actual spread
+    # spread of returns ????????????????? THINK ABOUT IT
     # + think of more
 
 
-def market_check():
-    available_pairs = ['MATICBTC', 'ETHBTC', 'BNBBTC', 'LINKBTC', 'XRPBTC', 'ADABTC', 'XMRBTC', 'LTCBTC', 'EOSBTC', 'XTZBTC', 'VETBTC', 'DASHBTC', 'ATOMBTC', 'TRXBTC', 'QTUMBTC', 'NEOBTC', 'BATBTC', 'ZECBTC', 'ONTBTC', 'XLMBTC', 'ETCBTC', 'IOTABTC']
+def market_check(timeframe):
+    available_pairs = ['BCHBTC', 'RVNBTC', 'MATICBTC', 'ETHBTC', 'BNBBTC', 'LINKBTC', 'XRPBTC', 'ADABTC', 'XMRBTC', 'LTCBTC', 'EOSBTC', 'XTZBTC', 'VETBTC', 'DASHBTC', 'ATOMBTC', 'TRXBTC', 'QTUMBTC', 'NEOBTC', 'BATBTC', 'ZECBTC', 'ONTBTC', 'XLMBTC', 'ETCBTC', 'IOTABTC']
     chosen_pairs = []
     for item in available_pairs:
         for item2 in available_pairs:
             if item == item2:
                 pass
             else:
-                p_value = full_analysis(item, item2, '1h')
+                p_value = full_analysis(item, item2, timeframe)
 
                 if p_value < 0.01:
                     message = str(item) + str(item2)
@@ -564,6 +640,10 @@ def market_check():
         for item2 in coint_items:
             if item[0] == item2[1] and item[1] == item2[0]:
                 coint_items.remove(item)
+    for item in coint_items:
+        for item2 in coint_items:
+            if item[0] == item2[1] and item[1] == item2[0]:
+                coint_items.remove(item2)
     print(f'cointegrated items : {coint_items}')
 
     return coint_items
@@ -587,51 +667,108 @@ def full_graphs(timeframe, coint_items):
     return watchlist
 
 
+ #  when you have an API for OCO on margin on Binance
 def watcher(watchlist, timeframe):
     for item in watchlist:
         p_value, spread_mean, spread_st_dev, last_spread_data, all_data = full_analysis_watch(item[0], item[1],
                                                                                               timeframe)
-        print(all_data)
+        # print(all_data)
         if p_value < 0.01:
             if spread_mean - (2 * spread_st_dev) >= last_spread_data:
-                playsound('Ticket-machine-sound-effect.mp3')
+                playsound('Ticket-machine-sound.mp3')
 
                 timestamp = datetime.datetime.now()
                 message = [timestamp, item[0], item[1]]
                 print(f'FOUND OPPORTUNITY {item[0]}{item[1]}')
                 full_analysis_and_plots(item[0], item[1], timeframe)
                 full_analysis_and_plots(item[1], item[0], timeframe)
-                write_log(message)
+                trading_amount1, trading_amount2, price1, price2 = find_amount(item, all_data)
+                stop_loss_level1, stop_loss_level2, price_target1, price_target2 = find_targets(item[1], item[0],
+                                                                                                price2, price1)
+                write_log('statistical_analysis_log.csv', message)
+                answer_charts = input('Do you want to open the charts? y/n ')
+                if answer_charts == 'y':
+                    webbrowser.open('https://www.binance.com/en/trade/' + item[0].replace('BTC', '_BTC'))
+                    webbrowser.open('https://www.binance.com/en/trade/' + item[1].replace('BTC', '_BTC'))
+
                 answer = input('Do you want to execute orders? y/n ')
                 if answer == 'y':
-                    trading_amount1, trading_amount2, price1, price2 = find_amount(item, all_data)
-                    stop_loss_level1, stop_loss_level2, price_target1, price_target2 = find_targets(item[1], item[0], price2, price1)
                     execute_orders(item[1], item[0], price2, price1, trading_amount2, trading_amount1)
-                    message = [item[1], price2, trading_amount2, price_target2, stop_loss_level2,
-                               item[0], price1, trading_amount1, price_target1, stop_loss_level1]
-                    write_log2(message)
-
+                    message = [item[1], format(price2, '.8f'), trading_amount2, format(price_target1, '.8f'), format(stop_loss_level1, '.8f'),'???',
+                               item[0], format(price1, '.8f'), trading_amount1, format(price_target2, '.8f'), format(stop_loss_level2, '.8f'),'???', timestamp]
+                    write_log('statistical_analysis_open_orders.csv', message) # HERE
             if spread_mean + (2 * spread_st_dev) <= last_spread_data:
-                playsound('Ticket-machine-sound-effect.mp3')
+                playsound('Ticket-machine-sound.mp3')
 
                 timestamp = datetime.datetime.now()
                 message = [timestamp, item[0], item[1]]
                 print(f'FOUND OPPORTUNITY {item[0]}{item[1]}')
                 full_analysis_and_plots(item[0], item[1], timeframe)
                 full_analysis_and_plots(item[1], item[0], timeframe)
-                write_log(message)
+                trading_amount1, trading_amount2, price1, price2 = find_amount(item, all_data)
+                stop_loss_level1, stop_loss_level2, price_target1, price_target2 = find_targets(item[0], item[1], price1, price2)
+
+                write_log('statistical_analysis_log.csv', message)
+                if answer_charts == 'y':
+                    webbrowser.open('https://www.binance.com/en/trade/' + item[0].replace('BTC', '_BTC'))
+                    webbrowser.open('https://www.binance.com/en/trade/' + item[1].replace('BTC', '_BTC'))
+
                 answer = input('Do you want to execute orders? y/n ')
                 if answer == 'y':
-                    trading_amount1, trading_amount2, price1, price2 = find_amount(item, all_data)
-                    stop_loss_level1, stop_loss_level2, price_target1, price_target2 = find_targets(item[0], item[1], price1, price2)
                     execute_orders(item[0], item[1], price1, price2, trading_amount1, trading_amount2)
-                    message = [item[0], price1, trading_amount1, price_target1, stop_loss_level1,
-                               item[1],  price2, trading_amount2, price_target2, stop_loss_level2]
-                    write_log2(message)
+                    message = [item[0], format(price1, '.8f'), trading_amount1, format(price_target1, '.8f'), format(stop_loss_level1, '.8f'),'???',
+                               item[1], format(price2, '.8f'), trading_amount2, format(price_target2, '.8f'), format(stop_loss_level2, '.8f'),'???', timestamp]
+                    write_log('statistical_analysis_open_orders.csv', message)
             else:
                 print('nothing found')
-                print('nothing found')
-                print('nothing found')
+
+
+ # need to finite backtesting strtegies
+def backtest_watcher(watchlist, timeframe):
+    for item in watchlist:
+        p_value, spread_mean, spread_st_dev, last_spread_data, all_data = full_analysis_watch(item[0], item[1],
+                                                                                              timeframe)
+        # print(all_data)
+        if p_value < 0.01:
+            for spread in all_data['spread']:
+                if spread_mean - (2 * spread_st_dev) >= spread:
+                    playsound('Ticket-machine-sound.mp3')
+
+                    timestamp = datetime.datetime.now()
+                    message = [timestamp, item[0], item[1]]
+                    print(f'FOUND OPPORTUNITY {item[0]}{item[1]}')
+                    full_analysis_and_plots(item[0], item[1], timeframe)
+                    full_analysis_and_plots(item[1], item[0], timeframe)
+                    write_log('statistical_analysis_log.csv', message)
+                    answer = input('Do you want to execute orders? y/n ')
+                    if answer == 'y':
+                        trading_amount1, trading_amount2, price1, price2 = find_amount(item, all_data)
+                        stop_loss_level1, stop_loss_level2, price_target1, price_target2 = find_targets(item[1], item[0], price2, price1)
+                        execute_orders(item[1], item[0], price2, price1, trading_amount2, trading_amount1)
+                        message = [item[1], format(price2, '.8f'), trading_amount2, format(price_target2, '.8f'), format(stop_loss_level2, '.8f'),'???',
+                                   item[0], format(price1, '.8f'), trading_amount1, format(price_target1, '.8f'), format(stop_loss_level1, '.8f'),'???']
+                        write_log('statistical_analysis_open_orders.csv', message)
+
+                if spread_mean + (2 * spread_st_dev) <= last_spread_data:
+                    playsound('Ticket-machine-sound.mp3')
+
+                    timestamp = datetime.datetime.now()
+                    message = [timestamp, item[0], item[1]]
+                    print(f'FOUND OPPORTUNITY {item[0]}{item[1]}')
+                    full_analysis_and_plots(item[0], item[1], timeframe)
+                    full_analysis_and_plots(item[1], item[0], timeframe)
+                    write_log('statistical_analysis_log.csv', message)
+                    answer = input('Do you want to execute orders? y/n ')
+                    if answer == 'y':
+                        trading_amount1, trading_amount2, price1, price2 = find_amount(item, all_data)
+                        stop_loss_level1, stop_loss_level2, price_target1, price_target2 = find_targets(item[0], item[1], price1, price2)
+                        execute_orders(item[0], item[1], price1, price2, trading_amount1, trading_amount2)
+                        message = [item[0], format(price1, '.8f'), trading_amount1, format(price_target1, '.8f'), format(stop_loss_level1, '.8f'),'???',
+                                   item[1], format(price2, '.8f'), trading_amount2, format(price_target2, '.8f'), format(stop_loss_level2, '.8f'),'???']
+                        write_log('statistical_analysis_open_orders.csv', message)
+                else:
+                    print('nothing found')
+
         time.sleep(2)
 
 
@@ -639,37 +776,38 @@ def open_orders_watcher(watchlist, timeframe):
     for item in watchlist:
         p_value, spread_mean, spread_st_dev, last_spread_data, all_data = full_analysis_watch(item[0], item[1],
                                                                                               timeframe)
-        print(all_data)
+        # print(all_data)
         if p_value < 0.01:
-            if spread_mean - (2 * spread_st_dev) >= last_spread_data:
-                playsound('Ticket-machine-sound-effect.mp3')
+            if spread_mean - (0.5 * spread_st_dev) <= last_spread_data and spread_mean + (0.5 * spread_st_dev) >= last_spread_data:
+                playsound('Ticket-machine-sound.mp3')
 
                 timestamp = datetime.datetime.now()
                 message = [timestamp, item[0], item[1]]
-                print(f'FOUND OPPORTUNITY {item[0]}{item[1]}')
+                print(f'OPPORTUNITY TO CLOSE TRADE {item[0]}{item[1]} - PRICES REVERTED TO THE MEAN')
                 full_analysis_and_plots(item[0], item[1], timeframe)
                 full_analysis_and_plots(item[1], item[0], timeframe)
-                write_log(message)
+                write_log('statistical_analysis_log.csv', message)
                 answer = input('Do you want to execute orders? y/n ')
                 if answer == 'y':
-                    pass
+                    pass  # CLOSING THE ORDERS DOWN
 
-            if spread_mean + (2 * spread_st_dev) <= last_spread_data:
-                playsound('Ticket-machine-sound-effect.mp3')
+            if spread_mean - (3 * spread_st_dev) >= last_spread_data or spread_mean + (3 * spread_st_dev) <= last_spread_data:
+                playsound('Ticket-machine-sound.mp3')
 
                 timestamp = datetime.datetime.now()
                 message = [timestamp, item[0], item[1]]
-                print(f'FOUND OPPORTUNITY {item[0]}{item[1]}')
+                print(f'OPPORTUNITY TO CLOSE TRADE {item[0]}{item[1]} - PRICES ARE TOO FAR APART')
                 full_analysis_and_plots(item[0], item[1], timeframe)
                 full_analysis_and_plots(item[1], item[0], timeframe)
-                write_log(message)
+                write_log('statistical_analysis_log.csv', message)
                 answer = input('Do you want to execute orders? y/n ')
-                if answer == 'y':
+                if spread_mean - (3 * spread_st_dev) >= last_spread_data:
                     pass
-            else:
-                print('nothing found')
-                print('nothing found')
-                print('nothing found')
+                if spread_mean + (3 * spread_st_dev) <= last_spread_data:
+                    pass
+                if answer == 'y':
+                    pass  # CLOSING THE ORDERS DOWN
+
         time.sleep(2)
 
 
@@ -685,36 +823,35 @@ def get_step_size(pair):
         step_size_data = [item.get('stepSize') for item in filter if item.get('filterType') == 'LOT_SIZE']
         # print(step_size_data)
         step_size = float(step_size_data[0])
-        print(step_size)
+        print(f'step size: {step_size}')
         precision = int(round(math.log(step_size, 10), 0))
-        print(precision)
+        print(f'number of decimals: {precision}')
         return precision
 
 
-def round_down(value, decimals): # untested, be careful
+def round_down(value, decimals):
     factor = 1 / (10 ** decimals)
     return (value // factor) * factor
 
 
-def find_amount(item, all_data):
+def find_amount(item, all_data): # change it to respect long and short values? need to test it a bit more
     precision1 = get_step_size(item[0])
     precision2 = get_step_size(item[1])
-    trading_amount1 = 0.01 / float(all_data['first_data_close'][-1])
-    trading_amount2 = 0.01 / float(all_data['second_data_close'][-1])
-    trading_amount1 = round_down(trading_amount1, precision1)
-    trading_amount2 = round_down(trading_amount2, precision2)
+    trading_amount1 = 0.005 / float(list(all_data['first_data_close'])[-1])
+    trading_amount2 = 0.005 / float(list(all_data['second_data_close'])[-1])
+    trading_amount1 = round(round_down(trading_amount1, abs(precision1)), abs(precision1))
+    trading_amount2 = round(round_down(trading_amount2, abs(precision2)), abs(precision1))
     print(f"trading amount for {item[0]} : {format(trading_amount1, '.10f')} "
-          f"price: {all_data['first_data_close'][-1]}")
+          f"price: {list(all_data['first_data_close'])[-1]}")
     print(f"trading amoaunt for {item[1]} : {format(trading_amount2, '.10f')} "
-          f"price: {all_data['second_data_close'][-1]}")
+          f"price: {list(all_data['second_data_close'])[-1]}")
 
     current_b1 = trading_amount1 / trading_amount2
     print(f'latest b1: {current_b1}')
-    price1 = float(all_data['first_data_close'][-1])
-    price2 = float(all_data['second_data_close'][-1])
+    price1 = float(list(all_data['first_data_close'])[-1])
+    price2 = float(list(all_data['second_data_close'])[-1])
     return trading_amount1, trading_amount2, price1, price2
-    # buy 1
-    # loan + sell 2
+
 
 
 def find_targets(symbol1, symbol2, price_long, price_short): # determines STOP-LOSS price and TARGET price.
@@ -734,65 +871,37 @@ def find_targets(symbol1, symbol2, price_long, price_short): # determines STOP-L
 def execute_orders(pair_long, pair_short, price_long, price_short, amount_long, amount_short):
     asset_short = pair_short.replace('BTC', '')
     print(f'asset we loan: {asset_short}')
-    # client_binance.create_margin_loan(asset=asset_short, amount=amount_short) # loans the desired amount for the pair we want to short
-    # client_binance.create_margin_order(
-    #     symbol=pair_short,
-    #     side=SIDE_SELL,
-    #     type=ORDER_TYPE_LIMIT,
-    #     timeInForce=TIME_IN_FORCE_GTC,
-    #     quantity=amount_short,
-    #     price=price_short)
-    # client_binance.create_margin_order(
-    #     symbol=pair_long,
-    #     side=SIDE_BUY,
-    #     type=ORDER_TYPE_LIMIT,
-    #     timeInForce=TIME_IN_FORCE_GTC,
-    #     quantity=amount_long,
-    #     price=price_long)
+    client_binance.create_margin_loan(asset=asset_short, amount=amount_short) # loans the desired amount for the pair we want to short
+    client_binance.create_margin_order(
+        symbol=pair_short,
+        side=SIDE_SELL,
+        type=ORDER_TYPE_LIMIT,
+        timeInForce=TIME_IN_FORCE_GTC,
+        quantity=amount_short,
+        price=price_short)
+    client_binance.create_margin_order(
+        symbol=pair_long,
+        side=SIDE_BUY,
+        type=ORDER_TYPE_LIMIT,
+        timeInForce=TIME_IN_FORCE_GTC,
+        quantity=amount_long,
+        price=price_long)
 
 
-# watchlist = market_check()
-watchlist = [['IOTABTC', 'XRPBTC']]
+# full_analysis('RVNBTC', 'ONTBTC', '1d')
+# full_analysis_and_plots('RVNBTC', 'ONTBTC', '1d')
+timeframe = '1h'
 
-print(watchlist)
-for item in watchlist:
-    for item2 in watchlist:
-        if item[0] == item2[1] and item[1] == item2[0]:
-            watchlist.remove(item2)
+watchlist = market_check(timeframe)
+# watchlist = 
 
 
-# print(coint_items)
-# watchlist = full_graphs('1h', coint_items)
-write_log([watchlist])
+# open_orders_watchlist = []
+# watchlist = full_graphs(timeframe, coint_items)
+timestamp = datetime.datetime.now()
+write_log('statistical_analysis_log.csv', [timestamp, timeframe])
+write_log('statistical_analysis_log.csv', [watchlist])
 while True:
-    watcher(watchlist, '1h')
+    watcher(watchlist, timeframe)
+    # open_orders_watcher(watchlist, timeframe)
 
-open_orders_watchlist = []
-
-# 1) find trading amount - 0.1 BTC * price1 for one and 0.1 BTC * price2  for another
-#  1.1) current b1 (latest values) = x1 * b1 = y1, b1 = y1 / x1
-# 2) find stop-loss levels, 2% of overall portfolio. Think about the ways to manage. OR MAYBE 3 ST.D STOP LOSS !!!!
-# 3) place orders:
-# 3.1) place buy order for pair1 amount
-# 3.2) loan pair2 amount, sell pair2 amount
-
-
-# 5) create open_orders_watchlist, for open orders
-# find target values: when prices return to mean
-# if spread[-1] < spread_mean - 3*spread_st_dev:
-#     playsound('') # FIND SOME OTHER SOUND
-#     # draw_spread
-#     print('Stop-loss triggered. need to sell B and buy back A + repay loan A')
-#
-# if spread[-1] > spread_mean + 3*spread_st_dev:
-#     playsound('') # FIND SOME OTHER SOUND
-#     # draw_spread
-#     print('Stop-loss triggered. need to sell A and buy back B + repay load B')
-#
-# if spread > spread_mean:
-#     print('need to finish execution. sell A and buy back + repay loan B')
-# if spread < spread_mean:
-#     print('need to finish execution. sell B and buy back + repay loan A')
-
-# 6) two programs must monitor market separately, so open_orders_watchlist must be saved in the separate file
-# 7)
