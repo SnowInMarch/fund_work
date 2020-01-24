@@ -98,7 +98,7 @@ def draw_candle_chart(stock):  # NEED TO MAKE DATES DISPLAY PROPERLY
 
 # prints many graphs on the same chart
 def compile_data(stock1, stock2, all_data, timeframe):
-    print(all_data)
+    # print(all_data)
     price_data = []
     available_pairs = [stock1, stock2]
     # for item in available_pairs:
@@ -109,7 +109,7 @@ def compile_data(stock1, stock2, all_data, timeframe):
     price_data.append(all_data['second_data_close'].astype('float'))
 
     # print(price_data)
-    print(price_data)
+    # print(price_data)
     combination_graph = pd.concat(price_data, axis=1)
     combination_graph.columns = available_pairs
     combination_graph.div(combination_graph.iloc[0]).plot(figsize=(16, 9))
@@ -239,6 +239,10 @@ def write_log(file_name, message):
         wfile.writerow(message)
 
 
+def save_data(file_name, data):
+    data.to_csv(file_name)
+
+
 # SSE/SST - how many errors out of all data  <<<<<<<< WORK ON IT
 def sst_sse_ssr(data, data2):
     sse = 0
@@ -284,7 +288,7 @@ def draw_spread(data, symbol1, symbol2):
 
 
 # AUGMENTED DICKEY FULLER TEST
-def check_for_stationarity(data, cutoff=0.01):
+def check_for_stationarity(data, cutoff=0.01): # CHANGE ET
     # dont forget that we are estimating, why dont we put on a stricter test?
     values = adfuller(data)
     p_value = adfuller(data)[1]
@@ -359,7 +363,7 @@ def draw_4_charts(first_pair, second_pair, timeframe):
 # building spread
 
 
-def full_analysis(symbol1, symbol2, timeframe):
+def full_analysis(symbol1, symbol2, timeframe): # CHANGE ET
     print(f'[ {symbol1} {symbol2} {timeframe} ]')
     print('[' + symbol1 + ']')
 
@@ -409,12 +413,12 @@ def full_analysis(symbol1, symbol2, timeframe):
     # print(all_data)
     spread_mean = np.mean(all_data['spread'])
     spread_st_dev = np.std(all_data['spread'])
-    print(f'mean of spread : {spread_mean}')
-    print(f'st_dev of spread: {spread_st_dev}')
+    print(f'mean of spread : {format(spread_mean, ".10f")}')
+    print(f'st_dev of spread: {format(spread_st_dev, ".10f")}')
 
     print('[checking for stationarity of spread]')
     p_value = check_for_stationarity(all_data['spread'])
-    # if p_value < 0.01:
+    # if p_value < cutoff:
     #     print('[plotting graphs]')
     #     compile_data(symbol1, symbol2, all_data, timeframe)  # 1st graph, 2 charts together
     #     # draw_scatter_correlation(symbol1, symbol2, timeframe) # 2nd graph, scatter plot of 2 prices
@@ -425,7 +429,7 @@ def full_analysis(symbol1, symbol2, timeframe):
     #     plt.show()
     #     draw_spread(all_data, symbol1, symbol2) # 4th graph, chart of spread between 2
 
-    return(p_value)
+    return p_value
 
 
 def full_analysis_watch(symbol1, symbol2, timeframe):
@@ -542,7 +546,7 @@ def full_analysis_watch(symbol1, symbol2, timeframe):
     return p_value, spread_mean, spread_st_dev, last_spread_data, all_data
 
 
-def full_analysis_and_plots(symbol1, symbol2, timeframe):
+def full_analysis_and_plots(symbol1, symbol2, timeframe): # CHANGE ET
     print(f'[ {symbol1} {symbol2} {timeframe} ]')
     print('[' + symbol1 + ']')
 
@@ -574,11 +578,11 @@ def full_analysis_and_plots(symbol1, symbol2, timeframe):
     # getting returns data (% change)
     all_data['first_pair_returns'] = all_data['first_data_close'].astype(float).pct_change(1)
     first_pair_returns = all_data['first_pair_returns'].astype(float).dropna()
-    print(first_pair_returns)
+    # print(first_pair_returns)
     # getting returns data (% change)
     all_data['second_pair_returns'] = all_data['second_data_close'].astype(float).pct_change(1)
     second_pair_returns = all_data['second_pair_returns'].astype(float).dropna()
-    print(len(second_pair_returns))
+    # print(len(second_pair_returns))
 
     print('[regression analyis]')
     b1, b0 = find_regression(symbol1, symbol2, first_pair_clean, second_pair_clean)
@@ -597,7 +601,7 @@ def full_analysis_and_plots(symbol1, symbol2, timeframe):
 
     print('[checking for stationarity of spread]')
     p_value = check_for_stationarity(all_data['spread'])
-    if p_value < 0.01:
+    if p_value < 0.03:
         print('[plotting graphs]')
         compile_data(symbol1, symbol2, all_data, timeframe)  # 1st graph, 2 charts together
         draw_4_charts(symbol1, symbol2, timeframe) # 2nd page, scatter of prices, scatter of returns, spread +-stdev
@@ -606,8 +610,8 @@ def full_analysis_and_plots(symbol1, symbol2, timeframe):
     # + think of more
 
 
-def market_check(timeframe):
-    available_pairs = ['BCHBTC', 'RVNBTC', 'MATICBTC', 'ETHBTC', 'BNBBTC', 'LINKBTC', 'XRPBTC', 'ADABTC', 'XMRBTC', 'LTCBTC', 'EOSBTC', 'XTZBTC', 'VETBTC', 'DASHBTC', 'ATOMBTC', 'TRXBTC', 'QTUMBTC', 'NEOBTC', 'BATBTC', 'ZECBTC', 'ONTBTC', 'XLMBTC', 'ETCBTC', 'IOTABTC']
+def market_check(timeframe): # CHANGE ET
+    available_pairs = ['IOSTBTC', 'BCHBTC', 'RVNBTC', 'MATICBTC', 'ETHBTC', 'BNBBTC', 'LINKBTC', 'XRPBTC', 'ADABTC', 'XMRBTC', 'LTCBTC', 'EOSBTC', 'XTZBTC', 'VETBTC', 'DASHBTC', 'ATOMBTC', 'TRXBTC', 'QTUMBTC', 'NEOBTC', 'BATBTC', 'ZECBTC', 'ONTBTC', 'XLMBTC', 'ETCBTC', 'IOTABTC']
     chosen_pairs = []
     for item in available_pairs:
         for item2 in available_pairs:
@@ -649,7 +653,7 @@ def market_check(timeframe):
     return coint_items
 
 
-def full_graphs(timeframe, coint_items):
+def full_graphs(timeframe, coint_items): # CHANGE ET
 
     watchlist = []
 
@@ -678,6 +682,8 @@ def watcher(watchlist, timeframe):
                 playsound('Ticket-machine-sound.mp3')
 
                 timestamp = datetime.datetime.now()
+                timestamp = timestamp.strftime('%x %X')
+
                 message = [timestamp, item[0], item[1]]
                 print(f'FOUND OPPORTUNITY {item[0]}{item[1]}')
                 full_analysis_and_plots(item[0], item[1], timeframe)
@@ -701,6 +707,8 @@ def watcher(watchlist, timeframe):
                 playsound('Ticket-machine-sound.mp3')
 
                 timestamp = datetime.datetime.now()
+                timestamp = timestamp.strftime('%x %X')
+
                 message = [timestamp, item[0], item[1]]
                 print(f'FOUND OPPORTUNITY {item[0]}{item[1]}')
                 full_analysis_and_plots(item[0], item[1], timeframe)
@@ -729,6 +737,7 @@ def backtest_watcher(watchlist, timeframe):
     for item in watchlist:
         p_value, spread_mean, spread_st_dev, last_spread_data, all_data = full_analysis_watch(item[0], item[1],
                                                                                               timeframe)
+
         # print(all_data)
         if p_value < 0.01:
             for spread in all_data['spread']:
@@ -783,6 +792,8 @@ def open_orders_watcher(watchlist, timeframe):
                 playsound('Ticket-machine-sound.mp3')
 
                 timestamp = datetime.datetime.now()
+                timestamp = timestamp.strftime('%x %X')
+
                 message = [timestamp, item[0], item[1]]
                 print(f'OPPORTUNITY TO CLOSE TRADE {item[0]}{item[1]} - PRICES REVERTED TO THE MEAN')
                 full_analysis_and_plots(item[0], item[1], timeframe)
@@ -794,10 +805,14 @@ def open_orders_watcher(watchlist, timeframe):
 
             if spread_mean - (3 * spread_st_dev) >= last_spread_data or spread_mean + (3 * spread_st_dev) <= last_spread_data:
                 playsound('Ticket-machine-sound.mp3')
-
+                print(f'last : {last_spread_data}, '
+                      f'- : {spread_mean - (3 * spread_st_dev)}, '
+                      f'+ : {spread_mean + (3 * spread_st_dev)}')
                 timestamp = datetime.datetime.now()
+                timestamp = timestamp.strftime('%x %X')
+
                 message = [timestamp, item[0], item[1]]
-                print(f'OPPORTUNITY TO CLOSE TRADE {item[0]}{item[1]} - PRICES ARE TOO FAR APART')
+                print(f'OPPORTUNITY TO CLOSE TRADE {item[0]} {item[1]} - PRICES ARE TOO FAR APART')
                 full_analysis_and_plots(item[0], item[1], timeframe)
                 full_analysis_and_plots(item[1], item[0], timeframe)
                 write_log('statistical_analysis_log.csv', message)
@@ -842,9 +857,9 @@ def find_amount(item, all_data): # change it to respect long and short values? n
     trading_amount2 = 0.005 / float(list(all_data['second_data_close'])[-1])
     trading_amount1 = round(round_down(trading_amount1, abs(precision1)), abs(precision1))
     trading_amount2 = round(round_down(trading_amount2, abs(precision2)), abs(precision2))
-    print(f"trading amount for {item[0]} : {format(trading_amount1, '.10f')} "
+    print(f"trading amount for {item[0]} : {format(trading_amount1, '.8f')} "
           f"price: {format(list(all_data['first_data_close'])[-1], '.8f')}")
-    print(f"trading amount for {item[1]} : {format(trading_amount2, '.10f')} "
+    print(f"trading amount for {item[1]} : {format(trading_amount2, '.8f')} "
           f"price: {format(list(all_data['second_data_close'])[-1], '.8f')}")
 
     current_b1 = trading_amount1 / trading_amount2
@@ -859,12 +874,12 @@ def find_targets(symbol1, symbol2, price_long, price_short): # determines STOP-L
     stop_loss_level1 = price_long - price_long*0.02 # LONG THIS
     price_target1 = price_long + price_long*0.04
     print(f'go long {symbol1}   '
-          f'stop-loss price for pair 1: {format(stop_loss_level1, ".10f")}, target price for pair 1 : {format(price_target1, ".10f")}')
+          f'stop-loss price for pair 1: {format(stop_loss_level1, ".8f")}, target price for pair 1 : {format(price_target1, ".8f")}')
 
     stop_loss_level2 = price_short + price_short*0.02 # SHORT THIS
     price_target2 = price_short - price_short*0.04
     print(f'go short {symbol2}   '
-          f'stop-loss price for pair 2: {format(stop_loss_level2, ".10f")}, target price for pair 2 : {format(price_target2, ".10f")}')
+          f'stop-loss price for pair 2: {format(stop_loss_level2, ".8f")}, target price for pair 2 : {format(price_target2, ".8f")}')
 
     return stop_loss_level1, stop_loss_level2, price_target1, price_target2
 
@@ -892,18 +907,18 @@ def execute_orders(pair_long, pair_short, price_long, price_short, amount_long, 
 # full_analysis('RVNBTC', 'ONTBTC', '1d')
 # full_analysis_and_plots('RVNBTC', 'ONTBTC', '1d')
 timeframe = '1h'
-
+cutoff = 0.01
 watchlist = market_check(timeframe)
-# watchlist = [['RVNBTC', 'QTUMBTC'], ['RVNBTC', 'XLMBTC'], ['BNBBTC', 'ETHBTC'], ['LINKBTC', 'RVNBTC'], ['ADABTC', 'XRPBTC'], ['QTUMBTC', 'XLMBTC'], ['NEOBTC', 'BNBBTC'], ['ONTBTC', 'RVNBTC'], ['IOTABTC', 'ZECBTC']]
-watchlist2 = [['NEOBTC', 'EOSBTC'], ['IOTABTC', 'ZECBTC']]
+# watchlist = [['RVNBTC', 'LINKBTC'], ['MATICBTC', 'VETBTC'], ['XRPBTC', 'ADABTC'], ['VETBTC', 'IOSTBTC'], ['TRXBTC', 'XRPBTC'], ['NEOBTC', 'BNBBTC'], ['XLMBTC', 'RVNBTC'], ['XLMBTC', 'LINKBTC']]
+
+watchlist2 = [['IOTABTC', 'ZECBTC'], ['RVNBTC','ONTBTC']]
 # open_orders_watchlist = []
 # watchlist = full_graphs(timeframe, coint_items)
 timestamp = datetime.datetime.now()
+timestamp = timestamp.strftime('%x %X')
+
 write_log('statistical_analysis_log.csv', [timestamp, timeframe])
 write_log('statistical_analysis_log.csv', [watchlist])
 while True:
     watcher(watchlist, timeframe)
     open_orders_watcher(watchlist2, timeframe)
-
-
-IOTABTC,0.00002326,214.0,0.00002419,0.00002279,???,ZECBTC,0.00435100,1.0,0.00417696,0.00443802,???,2020-01-11 16:44:31.200960
